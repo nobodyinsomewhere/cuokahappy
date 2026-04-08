@@ -1,4 +1,4 @@
-# Tavern Card Generator V2
+# Tavern Card Generator 
 
 > 一个纯前端、开箱即用、可直接部署的酒馆角色卡生成工具。  
 > 支持 JSON / PNG 角色卡导入导出、AI 一键补全设定、多主题切换与本地自动保存。
@@ -7,7 +7,7 @@
 
 ## 简介
 
-Tavern Card Generator V2 是一个面向角色卡创作场景的轻量级前端工具。  
+Tavern Card Generator 是一个面向角色卡创作场景的轻量级前端工具。  
 它不依赖后端、不需要数据库，也不要求复杂的环境配置。
 
 你可以直接本地打开使用，也可以部署到 Netlify、Vercel、Cloudflare Pages 等静态托管平台，作为一个可长期维护的在线工具站。
