@@ -1,6 +1,6 @@
 window.ApiService = (() => {
   async function chatCompletion({ baseUrl, apiKey, model, messages }) {
-    const url = (baseUrl || "").replace(/\/+$/, "") + "/chat/completions";
+    const url = baseUrl.replace(/\/+$/, "") + "/chat/completions";
 
     const res = await fetch(url, {
       method: "POST",
@@ -10,8 +10,8 @@ window.ApiService = (() => {
       },
       body: JSON.stringify({
         model,
-        messages,
-        temperature: 0.9
+        temperature: 0.9,
+        messages
       })
     });
 
@@ -25,7 +25,8 @@ window.ApiService = (() => {
   }
 
   function buildPrompt(character) {
-    return `你是一个角色卡写作助手。请根据已有字段补全角色设定，并返回严格 JSON，字段包括：
+    return `
+你是一个角色卡写作助手。请根据已有字段补全角色设定，并返回严格 JSON，字段包括：
 summary, description, personality, scenario, firstMes, mesExample, creatorNotes
 
 要求：
@@ -36,24 +37,27 @@ summary, description, personality, scenario, firstMes, mesExample, creatorNotes
 
 已知角色信息：
 ${JSON.stringify(character, null, 2)}
-`;
+    `.trim();
   }
 
-  async function generateCharacterFields(cfg, character) {
+  async function generateCharacterFields(config, character) {
     const content = await chatCompletion({
-      baseUrl: cfg.baseUrl,
-      apiKey: cfg.apiKey,
-      model: cfg.model,
+      baseUrl: config.baseUrl,
+      apiKey: config.apiKey,
+      model: config.model,
       messages: [
         { role: "system", content: "你是一个严谨的角色卡设定生成器。" },
         { role: "user", content: buildPrompt(character) }
       ]
     });
 
-    const parsed = Utils.safeJsonParse(content, null);
-    if (!parsed) {
-      throw new Error("AI 返回的不是合法 JSON，请重试或调整模型。");
+    let parsed = null;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      throw new Error("AI 返回的不是合法 JSON，请重试或更换模型。");
     }
+
     return parsed;
   }
 
