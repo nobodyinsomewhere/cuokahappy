@@ -1,9 +1,10 @@
 (() => {
   let store = StorageService.loadStore();
-  const THEME_KEY = "tavern_card_v2_theme";
 
   const els = {
-    toastContainer: document.getElementById("toastContainer"),
+    toastWrap: document.getElementById("toastWrap"),
+    themeSelect: document.getElementById("themeSelect"),
+    characterSearch: document.getElementById("characterSearch"),
     characterList: document.getElementById("characterList"),
     statusText: document.getElementById("statusText"),
 
@@ -11,6 +12,7 @@
     duplicateCharacterBtn: document.getElementById("duplicateCharacterBtn"),
     deleteCurrentBtn: document.getElementById("deleteCurrentBtn"),
     saveCharacterBtn: document.getElementById("saveCharacterBtn"),
+    fillTemplateBtn: document.getElementById("fillTemplateBtn"),
 
     importJsonBtn: document.getElementById("importJsonBtn"),
     exportJsonBtn: document.getElementById("exportJsonBtn"),
@@ -21,8 +23,6 @@
 
     jsonFileInput: document.getElementById("jsonFileInput"),
     pngFileInput: document.getElementById("pngFileInput"),
-
-    fillTemplateBtn: document.getElementById("fillTemplateBtn"),
 
     apiBaseUrl: document.getElementById("apiBaseUrl"),
     apiKey: document.getElementById("apiKey"),
@@ -44,8 +44,6 @@
     previewPersonality: document.getElementById("previewPersonality"),
     previewScenario: document.getElementById("previewScenario"),
 
-    themeSelector: document.getElementById("themeSelector"),
-
     name: document.getElementById("name"),
     version: document.getElementById("version"),
     creator: document.getElementById("creator"),
@@ -66,164 +64,60 @@
   };
 
   const fieldIds = [
-    "name","version","creator","tags","summary","userName","charName",
-    "description","personality","scenario","firstMes","mesExample",
-    "creatorNotes","definition","themeColor","themeColor2","alternateGreetings"
+    "name",
+    "version",
+    "creator",
+    "tags",
+    "summary",
+    "userName",
+    "charName",
+    "description",
+    "personality",
+    "scenario",
+    "firstMes",
+    "mesExample",
+    "creatorNotes",
+    "definition",
+    "themeColor",
+    "themeColor2",
+    "alternateGreetings"
   ];
 
   function setStatus(text) {
-    if (els.statusText) els.statusText.textContent = text;
+    Utils.setStatus(text);
   }
 
-  function showToast(message, type = "info", duration = 2200) {
-    if (!els.toastContainer) return;
-    const toast = document.createElement("div");
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-    els.toastContainer.appendChild(toast);
-
-    requestAnimationFrame(() => {
-      toast.classList.add("show");
-    });
-
-    setTimeout(() => {
-      toast.classList.remove("show");
-      setTimeout(() => toast.remove(), 250);
-    }, duration);
-  }
-
-  function notify(message, type = "info") {
-    setStatus(message);
-    showToast(message, type);
+  function toast(text) {
+    Utils.toast(text);
   }
 
   function currentCharacter() {
     return StorageService.getCurrent(store);
   }
 
+  function getTheme() {
+    return localStorage.getItem("tavern_card_v3_theme") || "glass-ice";
+  }
+
   function applyTheme(theme) {
-    const finalTheme = theme || "default";
+    const finalTheme = theme || "glass-ice";
     document.documentElement.setAttribute("data-theme", finalTheme);
-    localStorage.setItem(THEME_KEY, finalTheme);
-    if (els.themeSelector) {
-      els.themeSelector.value = finalTheme;
+    localStorage.setItem("tavern_card_v3_theme", finalTheme);
+    if (els.themeSelect) {
+      els.themeSelect.value = finalTheme;
     }
   }
 
   function initTheme() {
-    const savedTheme = localStorage.getItem(THEME_KEY) || "default";
-    applyTheme(savedTheme);
-  }
+    const theme = getTheme();
+    applyTheme(theme);
 
-  function buildDefinition(ch) {
-    if (ch.definition?.trim()) return ch.definition.trim();
-
-    const parts = [];
-    if (ch.summary) parts.push(`# Summary\n${ch.summary}`);
-    if (ch.description) parts.push(`# Description\n${ch.description}`);
-    if (ch.personality) parts.push(`# Personality\n${ch.personality}`);
-    if (ch.scenario) parts.push(`# Scenario\n${ch.scenario}`);
-    return parts.join("\n\n").trim();
-  }
-
-  function toCardJson(ch) {
-    return {
-      spec: "chara_card_v2",
-      spec_version: "2.0",
-      data: {
-        name: ch.name || "未命名角色",
-        description: ch.description || "",
-        personality: ch.personality || "",
-        scenario: ch.scenario || "",
-        first_mes: ch.firstMes || "",
-        mes_example: ch.mesExample || "",
-        creator_notes: ch.creatorNotes || "",
-        system_prompt: "",
-        post_history_instructions: "",
-        alternate_greetings: ch.alternateGreetings || [],
-        tags: ch.tags || [],
-        creator: ch.creator || "",
-        character_version: ch.version || "1.0",
-        extensions: {
-          summary: ch.summary || "",
-          user_name: ch.userName || "{{user}}",
-          char_name: ch.charName || "{{char}}",
-          avatar: ch.avatarDataUrl || "",
-          themeColor: ch.themeColor || "#6f86ff",
-          themeColor2: ch.themeColor2 || "#9b5cff"
-        },
-        definition: buildDefinition(ch)
-      },
-      meta: {
-        exported_at: new Date().toISOString(),
-        generated_by: "Tavern Card Generator V2"
-      }
-    };
-  }
-
-  function normalizeImportedCard(obj, imageDataUrl = "") {
-    const data = obj.data || obj;
-    return {
-      id: Utils.uid(),
-      createdAt: Utils.now(),
-      updatedAt: Utils.now(),
-      name: data.name || "未命名角色",
-      version: data.character_version || "1.0",
-      creator: data.creator || "",
-      tags: Array.isArray(data.tags) ? data.tags : [],
-      summary: data.extensions?.summary || "",
-      userName: data.extensions?.user_name || "{{user}}",
-      charName: data.extensions?.char_name || "{{char}}",
-      description: data.description || "",
-      personality: data.personality || "",
-      scenario: data.scenario || "",
-      firstMes: data.first_mes || "",
-      mesExample: data.mes_example || "",
-      creatorNotes: data.creator_notes || "",
-      definition: data.definition || "",
-      avatarDataUrl: imageDataUrl || data.extensions?.avatar || "",
-      themeColor: data.extensions?.themeColor || "#6f86ff",
-      themeColor2: data.extensions?.themeColor2 || "#9b5cff",
-      alternateGreetings: Array.isArray(data.alternate_greetings) ? data.alternate_greetings : []
-    };
-  }
-
-  function renderCharacterList() {
-    const cur = currentCharacter();
-    els.characterList.innerHTML = store.characters.map(ch => `
-      <div class="character-item ${ch.id === cur.id ? "active" : ""}" data-id="${ch.id}">
-        <div class="name">${Utils.escapeHtml(ch.name || "未命名角色")}</div>
-        <div class="meta">${Utils.escapeHtml(Utils.truncate(ch.summary || "暂无简介", 38))}</div>
-      </div>
-    `).join("");
-
-    [...els.characterList.querySelectorAll(".character-item")].forEach(node => {
-      node.addEventListener("click", () => {
-        StorageService.setCurrent(store, node.dataset.id);
-        store = StorageService.loadStore();
-        renderAll();
+    if (els.themeSelect) {
+      els.themeSelect.addEventListener("change", () => {
+        applyTheme(els.themeSelect.value);
+        toast("主题已切换");
       });
-    });
-  }
-
-  function fillForm(ch) {
-    els.name.value = ch.name || "";
-    els.version.value = ch.version || "1.0";
-    els.creator.value = ch.creator || "";
-    els.tags.value = Utils.joinTags(ch.tags);
-    els.summary.value = ch.summary || "";
-    els.userName.value = ch.userName || "{{user}}";
-    els.charName.value = ch.charName || "{{char}}";
-    els.description.value = ch.description || "";
-    els.personality.value = ch.personality || "";
-    els.scenario.value = ch.scenario || "";
-    els.firstMes.value = ch.firstMes || "";
-    els.mesExample.value = ch.mesExample || "";
-    els.creatorNotes.value = ch.creatorNotes || "";
-    els.definition.value = ch.definition || "";
-    els.themeColor.value = ch.themeColor || "#6f86ff";
-    els.themeColor2.value = ch.themeColor2 || "#9b5cff";
-    els.alternateGreetings.value = Utils.joinGreetings(ch.alternateGreetings);
+    }
   }
 
   function readFormIntoCharacter(ch) {
@@ -247,13 +141,73 @@
     return ch;
   }
 
+  function fillForm(ch) {
+    if (!ch) return;
+
+    els.name.value = ch.name || "";
+    els.version.value = ch.version || "1.0";
+    els.creator.value = ch.creator || "";
+    els.tags.value = Utils.joinTags(ch.tags);
+    els.summary.value = ch.summary || "";
+    els.userName.value = ch.userName || "{{user}}";
+    els.charName.value = ch.charName || "{{char}}";
+    els.description.value = ch.description || "";
+    els.personality.value = ch.personality || "";
+    els.scenario.value = ch.scenario || "";
+    els.firstMes.value = ch.firstMes || "";
+    els.mesExample.value = ch.mesExample || "";
+    els.creatorNotes.value = ch.creatorNotes || "";
+    els.definition.value = ch.definition || "";
+    els.themeColor.value = ch.themeColor || "#6f86ff";
+    els.themeColor2.value = ch.themeColor2 || "#9b5cff";
+    els.alternateGreetings.value = Utils.joinGreetings(ch.alternateGreetings);
+  }
+
   function saveCurrentFromForm() {
     const ch = readFormIntoCharacter(currentCharacter());
     StorageService.upsertCharacter(store, ch);
     store = StorageService.loadStore();
   }
 
+  function renderCharacterList() {
+    const list = els.characterList;
+    const search = (els.characterSearch.value || "").trim().toLowerCase();
+    const current = currentCharacter();
+
+    const filtered = store.characters.filter(ch => {
+      const target = `${ch.name || ""} ${ch.summary || ""}`.toLowerCase();
+      return !search || target.includes(search);
+    });
+
+    if (!filtered.length) {
+      list.innerHTML = `
+        <div class="character-item">
+          <div class="name">没有匹配的角色</div>
+          <div class="meta">试试别的关键词</div>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = filtered.map(ch => `
+      <div class="character-item ${ch.id === current?.id ? "active" : ""}" data-id="${ch.id}">
+        <div class="name">${escapeHtml(ch.name || "未命名角色")}</div>
+        <div class="meta">${escapeHtml(Utils.truncate(ch.summary || "暂无简介", 44))}</div>
+      </div>
+    `).join("");
+
+    [...list.querySelectorAll(".character-item[data-id]")].forEach(node => {
+      node.addEventListener("click", () => {
+        StorageService.setCurrent(store, node.dataset.id);
+        store = StorageService.loadStore();
+        renderAll();
+      });
+    });
+  }
+
   function renderPreview(ch) {
+    if (!ch) return;
+
     els.previewName.textContent = ch.name || "未命名角色";
     els.previewVersion.textContent = `v${ch.version || "1.0"}`;
     els.previewSummary.textContent = ch.summary || "一句话简介会显示在这里。";
@@ -261,7 +215,9 @@
     els.previewPersonality.textContent = ch.personality || "暂无人格设定";
     els.previewScenario.textContent = ch.scenario || "暂无场景";
 
-    els.previewTags.innerHTML = (ch.tags || []).map(t => `<span class="tag">${Utils.escapeHtml(t)}</span>`).join("");
+    els.previewTags.innerHTML = (ch.tags || [])
+      .map(tag => `<span class="tag">${escapeHtml(tag)}</span>`)
+      .join("");
 
     if (ch.avatarDataUrl) {
       els.previewAvatar.src = ch.avatarDataUrl;
@@ -273,7 +229,8 @@
   }
 
   function renderJson(ch) {
-    els.jsonPreview.textContent = JSON.stringify(toCardJson(ch), null, 2);
+    const json = CardDataService.toCardJson(ch);
+    els.jsonPreview.textContent = JSON.stringify(json, null, 2);
   }
 
   function renderAll() {
@@ -284,128 +241,156 @@
     renderJson(ch);
   }
 
-  function applyTemplateFill() {
-    const ch = currentCharacter();
-
-    if (!ch.summary) {
-      ch.summary = "外冷内稳、具有观察力和控制感的原创角色。";
-    }
-    if (!ch.description) {
-      ch.description = `${ch.name || "{{char}}"}外表克制冷静，习惯先观察局势再行动。擅长通过细节判断他人的意图，不会轻易暴露真实情绪。`;
-    }
-    if (!ch.personality) {
-      ch.personality = "敏锐，克制，礼貌，疏离，情绪稳定，偶尔带一点试探意味。";
-    }
-    if (!ch.scenario) {
-      ch.scenario = `在一个适合秘密交易或深夜交谈的场景中，${ch.userName || "{{user}}"}与${ch.charName || "{{char}}"}第一次真正接触。`;
-    }
-    if (!ch.firstMes) {
-      ch.firstMes = `${ch.charName || "{{char}}"}抬眼看向你，语气平静。\n\n“你来得比我预想中早。”`;
-    }
-    if (!ch.mesExample) {
-      ch.mesExample = `<START>
-${ch.charName || "{{char}}"}: 你看起来不像是路过。
-${ch.userName || "{{user}}"}: 那你觉得我是来做什么的？
-${ch.charName || "{{char}}"}: 我更想听你自己说。`;
-    }
-    if (!ch.creatorNotes) {
-      ch.creatorNotes = "写作重点：保持角色稳定性，避免突然过度热情或严重 OOC。";
-    }
-
-    StorageService.upsertCharacter(store, ch);
-    store = StorageService.loadStore();
-    renderAll();
-    notify("已模板补全", "success");
+  function escapeHtml(str = "") {
+    return String(str)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
   }
 
-  async function onAvatarUpload(file) {
+  async function handleAvatarUpload(file) {
     const ch = currentCharacter();
     ch.avatarDataUrl = await Utils.fileToDataURL(file);
     StorageService.upsertCharacter(store, ch);
     store = StorageService.loadStore();
     renderAll();
-    notify("图片已更新", "success");
+    toast("图片已更新");
   }
 
-  async function exportJson() {
-    const ch = currentCharacter();
-    const json = JSON.stringify(toCardJson(ch), null, 2);
-    const blob = new Blob([json], { type: "application/json;charset=utf-8" });
-    Utils.downloadBlob(blob, `${safeFileName(ch.name || "character")}.json`);
-    notify("JSON 已导出", "success");
-  }
-
-  async function copyJson() {
-    const ch = currentCharacter();
-    await Utils.copyText(JSON.stringify(toCardJson(ch), null, 2));
-    notify("JSON 已复制", "success");
-  }
-
-  async function importJson(file) {
-    const text = await file.text();
+  async function handleImportJson(file) {
+    const text = await Utils.fileToText(file);
     const parsed = Utils.safeJsonParse(text, null);
     if (!parsed) throw new Error("JSON 文件格式不合法");
 
-    const ch = normalizeImportedCard(parsed);
+    const ch = CardDataService.normalizeImportedCard(parsed);
     store.characters.unshift(ch);
     store.currentId = ch.id;
     StorageService.saveStore(store);
     store = StorageService.loadStore();
     renderAll();
-    notify("JSON 已导入", "success");
+    toast("JSON 已导入");
   }
 
-  async function exportPreviewPng() {
+  async function handleImportPng(file) {
+    const result = await PngCard.importEmbeddedPng(file);
+    const ch = CardDataService.normalizeImportedCard(result.parsed, result.imageDataUrl);
+
+    store.characters.unshift(ch);
+    store.currentId = ch.id;
+    StorageService.saveStore(store);
+    store = StorageService.loadStore();
+    renderAll();
+    toast("PNG 角色卡已导入");
+  }
+
+  function handleExportJson() {
+    const ch = currentCharacter();
+    const json = CardDataService.toCardJson(ch);
+    Utils.downloadJson(`${Utils.sanitizeFilename(ch.name || "character")}.json`, json);
+    toast("JSON 已导出");
+  }
+
+  async function handleCopyJson() {
+    const ch = currentCharacter();
+    await Utils.copyText(JSON.stringify(CardDataService.toCardJson(ch), null, 2));
+    toast("JSON 已复制");
+  }
+
+  async function handleExportPreviewPng() {
     const ch = currentCharacter();
     const blob = await PngCard.exportPlainPng(ch, els.exportCanvas);
-    Utils.downloadBlob(blob, `${safeFileName(ch.name || "character")}-preview.png`);
-    notify("普通 PNG 已导出", "success");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${Utils.sanitizeFilename(ch.name || "character")}-preview.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    toast("卡面 PNG 已导出");
   }
 
-  async function exportEmbeddedPng() {
+  async function handleExportEmbeddedPng() {
     const ch = currentCharacter();
-    const cardJson = toCardJson(ch);
+    const cardJson = CardDataService.toCardJson(ch);
     const blob = await PngCard.exportEmbeddedPng(ch, els.exportCanvas, cardJson);
-    Utils.downloadBlob(blob, `${safeFileName(ch.name || "character")}.png`);
-    notify("PNG 角色卡已导出", "success");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${Utils.sanitizeFilename(ch.name || "character")}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    toast("PNG 角色卡已导出");
   }
 
-  async function importPng(file) {
-    const res = await PngCard.importEmbeddedPng(file);
-    const ch = normalizeImportedCard(res.parsed, res.imageDataUrl);
-    store.characters.unshift(ch);
-    store.currentId = ch.id;
-    StorageService.saveStore(store);
+  function handleTemplateFill() {
+    const filled = CardDataService.applyTemplateFill(currentCharacter());
+    StorageService.upsertCharacter(store, filled);
     store = StorageService.loadStore();
     renderAll();
-    notify("PNG 角色卡已导入", "success");
+    toast("已模板补全");
   }
 
-  function saveApiConfig() {
+  function handleSaveCurrent() {
+    saveCurrentFromForm();
+    renderAll();
+    toast("已保存角色");
+  }
+
+  function handleDeleteCurrent() {
+    const ok = StorageService.deleteCharacter(store, currentCharacter().id);
+    if (!ok) {
+      toast("至少保留一个角色");
+      return;
+    }
+    store = StorageService.loadStore();
+    renderAll();
+    toast("已删除角色");
+  }
+
+  function handleNewCharacter() {
+    StorageService.createCharacter(store);
+    store = StorageService.loadStore();
+    renderAll();
+    toast("已新建角色");
+  }
+
+  function handleDuplicateCurrent() {
+    StorageService.duplicateCharacter(store, currentCharacter().id);
+    store = StorageService.loadStore();
+    renderAll();
+    toast("已复制角色");
+  }
+
+  function initApiConfig() {
+    const config = StorageService.loadApiConfig();
+    els.apiBaseUrl.value = config.baseUrl || "";
+    els.apiKey.value = config.apiKey || "";
+    els.apiModel.value = config.model || "";
+  }
+
+  function handleSaveApiConfig() {
     StorageService.saveApiConfig({
       baseUrl: els.apiBaseUrl.value.trim(),
       apiKey: els.apiKey.value.trim(),
       model: els.apiModel.value.trim()
     });
-    notify("API 配置已保存", "success");
+    toast("API 配置已保存");
   }
 
-  async function generateWithAi() {
-    const cfg = {
+  async function handleGenerateWithAi() {
+    const config = {
       baseUrl: els.apiBaseUrl.value.trim(),
       apiKey: els.apiKey.value.trim(),
       model: els.apiModel.value.trim()
     };
 
-    if (!cfg.baseUrl || !cfg.model) {
+    if (!config.baseUrl || !config.model) {
       throw new Error("请先填写 Base URL 和模型名");
     }
 
     setStatus("AI 生成中...");
-    showToast("AI 生成中...", "info", 1500);
 
     const ch = currentCharacter();
-    const generated = await ApiService.generateCharacterFields(cfg, ch);
+    const generated = await ApiService.generateCharacterFields(config, ch);
 
     ch.summary = generated.summary || ch.summary;
     ch.description = generated.description || ch.description;
@@ -418,161 +403,112 @@ ${ch.charName || "{{char}}"}: 我更想听你自己说。`;
     StorageService.upsertCharacter(store, ch);
     store = StorageService.loadStore();
     renderAll();
-    notify("AI 补全完成", "success");
+    setStatus("已生成");
+    toast("AI 补全完成");
   }
 
-  function safeFileName(name) {
-    return name.replace(/[\\/:*?"<>|]/g, "_");
-  }
-
-  function bindEvents() {
+  function bindFormAutoSave() {
     fieldIds.forEach(id => {
-      els[id].addEventListener("input", () => {
+      const el = els[id];
+      if (!el) return;
+      el.addEventListener("input", () => {
         saveCurrentFromForm();
         renderAll();
         setStatus("已自动保存");
       });
     });
+  }
 
-    if (els.themeSelector) {
-      els.themeSelector.addEventListener("change", () => {
-        applyTheme(els.themeSelector.value);
-        notify("主题已切换", "success");
-      });
-    }
+  function bindEvents() {
+    bindFormAutoSave();
 
-    els.saveCharacterBtn.addEventListener("click", () => {
-      saveCurrentFromForm();
-      renderAll();
-      notify("已手动保存", "success");
-    });
+    els.characterSearch.addEventListener("input", renderCharacterList);
 
-    els.newCharacterBtn.addEventListener("click", () => {
-      StorageService.createCharacter(store);
-      store = StorageService.loadStore();
-      renderAll();
-      notify("已新建角色", "success");
-    });
-
-    els.duplicateCharacterBtn.addEventListener("click", () => {
-      StorageService.duplicateCharacter(store, currentCharacter().id);
-      store = StorageService.loadStore();
-      renderAll();
-      notify("已复制角色", "success");
-    });
-
-    els.deleteCurrentBtn.addEventListener("click", () => {
-      const ok = StorageService.deleteCharacter(store, currentCharacter().id);
-      if (!ok) {
-        notify("至少保留一个角色", "error");
-        return;
-      }
-      store = StorageService.loadStore();
-      renderAll();
-      notify("已删除角色", "success");
-    });
-
-    els.fillTemplateBtn.addEventListener("click", applyTemplateFill);
+    els.newCharacterBtn.addEventListener("click", handleNewCharacter);
+    els.duplicateCharacterBtn.addEventListener("click", handleDuplicateCurrent);
+    els.deleteCurrentBtn.addEventListener("click", handleDeleteCurrent);
+    els.saveCharacterBtn.addEventListener("click", handleSaveCurrent);
+    els.fillTemplateBtn.addEventListener("click", handleTemplateFill);
 
     els.avatarUpload.addEventListener("change", async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
       try {
-        await onAvatarUpload(file);
+        await handleAvatarUpload(file);
       } catch (err) {
         alert(err.message || String(err));
-        notify("图片上传失败", "error");
       }
       e.target.value = "";
     });
 
-    els.exportJsonBtn.addEventListener("click", async () => {
-      try {
-        await exportJson();
-      } catch (err) {
-        alert(err.message || String(err));
-        notify("JSON 导出失败", "error");
-      }
-    });
-
-    els.copyJsonBtn.addEventListener("click", async () => {
-      try {
-        await copyJson();
-      } catch (err) {
-        alert(err.message || String(err));
-        notify("JSON 复制失败", "error");
-      }
-    });
-
     els.importJsonBtn.addEventListener("click", () => els.jsonFileInput.click());
+    els.importPngBtn.addEventListener("click", () => els.pngFileInput.click());
+
     els.jsonFileInput.addEventListener("change", async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
       try {
-        await importJson(file);
+        await handleImportJson(file);
       } catch (err) {
         alert(err.message || String(err));
-        notify("JSON 导入失败", "error");
       }
       e.target.value = "";
     });
 
-    els.exportPreviewPngBtn.addEventListener("click", async () => {
+    els.pngFileInput.addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
       try {
-        await exportPreviewPng();
+        await handleImportPng(file);
       } catch (err) {
         alert(err.message || String(err));
-        notify("普通 PNG 导出失败", "error");
+      }
+      e.target.value = "";
+    });
+
+    els.exportJsonBtn.addEventListener("click", handleExportJson);
+    els.copyJsonBtn.addEventListener("click", async () => {
+      try {
+        await handleCopyJson();
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+
+    els.exportPreviewPngBtn.addEventListener("click", async () => {
+      try {
+        await handleExportPreviewPng();
+      } catch (err) {
+        alert(err.message || String(err));
       }
     });
 
     els.exportPngBtn.addEventListener("click", async () => {
       try {
-        await exportEmbeddedPng();
+        await handleExportEmbeddedPng();
       } catch (err) {
         alert(err.message || String(err));
-        notify("PNG 角色卡导出失败", "error");
       }
     });
 
-    els.importPngBtn.addEventListener("click", () => els.pngFileInput.click());
-    els.pngFileInput.addEventListener("change", async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      try {
-        await importPng(file);
-      } catch (err) {
-        alert(err.message || String(err));
-        notify("PNG 角色卡导入失败", "error");
-      }
-      e.target.value = "";
-    });
-
-    const apiCfg = StorageService.loadApiConfig();
-    els.apiBaseUrl.value = apiCfg.baseUrl || "";
-    els.apiKey.value = apiCfg.apiKey || "";
-    els.apiModel.value = apiCfg.model || "";
-
-    els.saveApiConfigBtn.addEventListener("click", () => {
-      try {
-        saveApiConfig();
-      } catch (err) {
-        alert(err.message || String(err));
-        notify("API 配置保存失败", "error");
-      }
-    });
-
+    els.saveApiConfigBtn.addEventListener("click", handleSaveApiConfig);
     els.generateWithAiBtn.addEventListener("click", async () => {
       try {
-        await generateWithAi();
+        await handleGenerateWithAi();
       } catch (err) {
+        setStatus("生成失败");
         alert(err.message || String(err));
-        notify("AI 生成失败", "error");
       }
     });
   }
 
-  initTheme();
-  bindEvents();
-  renderAll();
+  function init() {
+    initTheme();
+    initApiConfig();
+    bindEvents();
+    renderAll();
+    setStatus("就绪");
+  }
+
+  init();
 })();
