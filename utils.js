@@ -1,86 +1,183 @@
-window.Utils = {
-  uid() {
-    return "id_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
-  },
+window.Utils = (() => {
+  function $(id) {
+    return document.getElementById(id);
+  }
 
-  now() {
-    return new Date().toISOString();
-  },
+  function uid(prefix = "id") {
+    return `${prefix}_${Math.random().toString(36).slice(2)}_${Date.now()}`;
+  }
 
-  safeJsonParse(text, fallback = null) {
-    try { return JSON.parse(text); } catch { return fallback; }
-  },
+  function nowText() {
+    return new Date().toLocaleString();
+  }
 
-  downloadBlob(blob, filename) {
+  function safeJsonParse(text, fallback = null) {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return fallback;
+    }
+  }
+
+  function sanitizeFilename(name = "file") {
+    return String(name).replace(/[\\/:*?"<>|]+/g, "_").trim() || "file";
+  }
+
+  function downloadText(filename, content) {
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
-  },
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
 
-  copyText(text) {
-    return navigator.clipboard.writeText(text);
-  },
+  function downloadJson(filename, data) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json;charset=utf-8"
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
 
-  fileToDataURL(file) {
+  async function copyText(text) {
+    await navigator.clipboard.writeText(text);
+  }
+
+  function fileToText(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
       reader.onerror = reject;
-      reader.readAsDataURL(file);
+      reader.readAsText(file, "utf-8");
     });
-  },
+  }
 
-  fileToArrayBuffer(file) {
+  function fileToArrayBuffer(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
       reader.onerror = reject;
       reader.readAsArrayBuffer(file);
     });
-  },
+  }
 
-  textToUint8(text) {
-    return new TextEncoder().encode(text);
-  },
+  function fileToDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
 
-  uint8ToText(uint8) {
+  function uint8ToText(uint8) {
     return new TextDecoder().decode(uint8);
-  },
+  }
 
-  splitTags(text) {
+  function textToUint8(text) {
+    return new TextEncoder().encode(text);
+  }
+
+  function setStatus(text) {
+    const el = $("statusText");
+    if (el) el.textContent = text;
+  }
+
+  function toast(message) {
+    const wrap = $("toastWrap");
+    if (!wrap) return;
+
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.textContent = message;
+    wrap.appendChild(el);
+
+    requestAnimationFrame(() => {
+      el.classList.add("show");
+    });
+
+    setTimeout(() => {
+      el.classList.remove("show");
+      setTimeout(() => el.remove(), 250);
+    }, 2200);
+  }
+
+  function fullResultText(result) {
+    if (!result) return "";
+    return [
+      "【一句话钩子】",
+      result.hook || "",
+      "",
+      "【场景摘要】",
+      result.summary || "",
+      "",
+      "【推进节点】",
+      result.beat || "",
+      "",
+      "【开场白】",
+      result.opening || ""
+    ].join("\n");
+  }
+
+  function pick(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function splitTags(text) {
     return (text || "")
       .split(/[，,]/)
       .map(s => s.trim())
       .filter(Boolean);
-  },
+  }
 
-  joinTags(tags) {
+  function joinTags(tags) {
     return (tags || []).join(", ");
-  },
+  }
 
-  splitGreetings(text) {
+  function splitGreetings(text) {
     return (text || "")
       .split("|")
       .map(s => s.trim())
       .filter(Boolean);
-  },
-
-  joinGreetings(arr) {
-    return (arr || []).join(" | ");
-  },
-
-  truncate(text, max = 60) {
-    if (!text) return "";
-    return text.length > max ? text.slice(0, max) + "..." : text;
-  },
-
-  escapeHtml(str = "") {
-    return str
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;");
   }
-};
+
+  function joinGreetings(list) {
+    return (list || []).join(" | ");
+  }
+
+  function truncate(text = "", max = 50) {
+    const str = String(text);
+    return str.length > max ? str.slice(0, max) + "..." : str;
+  }
+
+  return {
+    $,
+    uid,
+    nowText,
+    safeJsonParse,
+    sanitizeFilename,
+    downloadText,
+    downloadJson,
+    copyText,
+    fileToText,
+    fileToArrayBuffer,
+    fileToDataURL,
+    uint8ToText,
+    textToUint8,
+    setStatus,
+    toast,
+    fullResultText,
+    pick,
+    splitTags,
+    joinTags,
+    splitGreetings,
+    joinGreetings,
+    truncate
+  };
+})();
