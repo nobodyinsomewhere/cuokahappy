@@ -1,12 +1,12 @@
 window.StorageService = (() => {
-  const KEY = "tavern_card_v2_store";
-  const API_KEY = "tavern_card_v2_api";
+  const STORE_KEY = "tavern_card_v3_store";
+  const API_KEY = "tavern_card_v3_api";
 
   function defaultCharacter() {
     return {
-      id: Utils.uid(),
-      createdAt: Utils.now(),
-      updatedAt: Utils.now(),
+      id: Utils.uid("char"),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
       name: "未命名角色",
       version: "1.0",
       creator: "",
@@ -37,8 +37,7 @@ window.StorageService = (() => {
   }
 
   function loadStore() {
-    const raw = localStorage.getItem(KEY);
-    const parsed = Utils.safeJsonParse(raw, null);
+    const parsed = Utils.safeJsonParse(localStorage.getItem(STORE_KEY), null);
     if (!parsed || !Array.isArray(parsed.characters) || !parsed.characters.length) {
       const ds = defaultStore();
       saveStore(ds);
@@ -48,23 +47,15 @@ window.StorageService = (() => {
   }
 
   function saveStore(store) {
-    localStorage.setItem(KEY, JSON.stringify(store));
+    localStorage.setItem(STORE_KEY, JSON.stringify(store));
   }
 
   function getCurrent(store) {
-    return store.characters.find(c => c.id === store.currentId) || store.characters[0];
+    return store.characters.find(c => c.id === store.currentId) || store.characters[0] || null;
   }
 
   function setCurrent(store, id) {
     store.currentId = id;
-    saveStore(store);
-  }
-
-  function upsertCharacter(store, character) {
-    character.updatedAt = Utils.now();
-    const idx = store.characters.findIndex(c => c.id === character.id);
-    if (idx >= 0) store.characters[idx] = character;
-    else store.characters.unshift(character);
     saveStore(store);
   }
 
@@ -79,31 +70,48 @@ window.StorageService = (() => {
   function duplicateCharacter(store, sourceId) {
     const src = store.characters.find(c => c.id === sourceId);
     if (!src) return null;
+
     const cloned = {
       ...structuredClone(src),
-      id: Utils.uid(),
+      id: Utils.uid("char"),
       name: src.name + "（副本）",
-      createdAt: Utils.now(),
-      updatedAt: Utils.now()
+      createdAt: Date.now(),
+      updatedAt: Date.now()
     };
+
     store.characters.unshift(cloned);
     store.currentId = cloned.id;
     saveStore(store);
     return cloned;
   }
 
+  function upsertCharacter(store, character) {
+    character.updatedAt = Date.now();
+    const index = store.characters.findIndex(c => c.id === character.id);
+
+    if (index >= 0) {
+      store.characters[index] = character;
+    } else {
+      store.characters.unshift(character);
+    }
+
+    saveStore(store);
+  }
+
   function deleteCharacter(store, id) {
     if (store.characters.length <= 1) return false;
     store.characters = store.characters.filter(c => c.id !== id);
+
     if (store.currentId === id) {
       store.currentId = store.characters[0]?.id || null;
     }
+
     saveStore(store);
     return true;
   }
 
-  function saveApiConfig(cfg) {
-    localStorage.setItem(API_KEY, JSON.stringify(cfg));
+  function saveApiConfig(config) {
+    localStorage.setItem(API_KEY, JSON.stringify(config));
   }
 
   function loadApiConfig() {
@@ -120,9 +128,9 @@ window.StorageService = (() => {
     saveStore,
     getCurrent,
     setCurrent,
-    upsertCharacter,
     createCharacter,
     duplicateCharacter,
+    upsertCharacter,
     deleteCharacter,
     saveApiConfig,
     loadApiConfig
