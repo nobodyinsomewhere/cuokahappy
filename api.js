@@ -51,9 +51,12 @@ ${JSON.stringify(character, null, 2)}
       ]
     });
 
+    let cleaned = content.trim();
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+
     let parsed = null;
     try {
-      parsed = JSON.parse(content);
+      parsed = JSON.parse(cleaned);
     } catch {
       throw new Error("AI 返回的不是合法 JSON，请重试或更换模型。");
     }

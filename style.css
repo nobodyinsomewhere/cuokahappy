@@ -51,6 +51,45 @@ html[data-theme="glass-ice"]{
   --shadow:0 20px 40px rgba(82, 126, 178, .14);
 }
 
+html[data-theme="neon-green"]{
+  --bg:#0a1a0f;
+  --bg2:#0f2418;
+  --panel:#0d1f14;
+  --panel2:#142a1c;
+  --line:#1e3d28;
+  --text:#d4f5e0;
+  --muted:#7dba94;
+  --accent:#39ff8e;
+  --accent2:#00e5a0;
+  --shadow:0 12px 30px rgba(0,0,0,.32);
+}
+
+html[data-theme="sakura-pink"]{
+  --bg:#2a1520;
+  --bg2:#1f1018;
+  --panel:#261a22;
+  --panel2:#30212a;
+  --line:#4a2e3d;
+  --text:#f5e0ea;
+  --muted:#c49aaf;
+  --accent:#ff7eb3;
+  --accent2:#ff5ecf;
+  --shadow:0 12px 30px rgba(0,0,0,.30);
+}
+
+html[data-theme="warm-gold"]{
+  --bg:#1a1408;
+  --bg2:#221c0e;
+  --panel:#1e1810;
+  --panel2:#2a2216;
+  --line:#3d3220;
+  --text:#f5ecd4;
+  --muted:#bfa87a;
+  --accent:#f0c060;
+  --accent2:#e8a030;
+  --shadow:0 12px 30px rgba(0,0,0,.30);
+}
+
 *{box-sizing:border-box}
 
 html,body{
@@ -86,6 +125,12 @@ button.secondary{
 
 button.danger{
   background:var(--danger);
+}
+
+button:disabled,button.loading{
+  opacity:.55;
+  pointer-events:none;
+  cursor:not-allowed;
 }
 
 input,textarea,select{
@@ -542,16 +587,65 @@ html[data-theme="glass-ice"] .card-bg{
     linear-gradient(135deg, rgba(255,255,255,.24), rgba(255,255,255,.08));
 }
 
+.sidebar-toggle{
+  display:none;
+  position:fixed;
+  top:12px;
+  left:12px;
+  z-index:1001;
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  color:var(--text);
+  font-size:22px;
+  place-items:center;
+  box-shadow:var(--shadow);
+  padding:0;
+}
+
 @media (max-width: 1080px){
   .app-shell{
     grid-template-columns:1fr;
   }
 
   .sidebar{
-    position:static;
-    height:auto;
-    border-right:none;
-    border-bottom:1px solid var(--line);
+    position:fixed;
+    top:0;
+    left:0;
+    width:320px;
+    max-width:85vw;
+    height:100vh;
+    z-index:1000;
+    transform:translateX(-100%);
+    transition:transform .28s ease;
+    border-right:1px solid var(--line);
+    border-bottom:none;
+  }
+
+  .sidebar.open{
+    transform:translateX(0);
+  }
+
+  .sidebar-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:999;
+    background:rgba(0,0,0,.45);
+  }
+
+  .sidebar-overlay.show{
+    display:block;
+  }
+
+  .sidebar-toggle{
+    display:grid;
+  }
+
+  .main{
+    padding-top:60px;
   }
 }
 

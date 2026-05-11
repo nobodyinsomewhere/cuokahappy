@@ -60,7 +60,10 @@
     definition: document.getElementById("definition"),
     themeColor: document.getElementById("themeColor"),
     themeColor2: document.getElementById("themeColor2"),
-    alternateGreetings: document.getElementById("alternateGreetings")
+    alternateGreetings: document.getElementById("alternateGreetings"),
+    sidebarToggle: document.getElementById("sidebarToggle"),
+    sidebarOverlay: document.getElementById("sidebarOverlay"),
+    sidebar: document.querySelector(".sidebar")
   };
 
   const fieldIds = [
@@ -248,6 +251,17 @@
       .replaceAll(">", "&gt;");
   }
 
+  let _saveTimer = null;
+  function debouncedSave() {
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(() => {
+      saveCurrentFromForm();
+      renderPreview(currentCharacter());
+      renderJson(currentCharacter());
+      setStatus("已自动保存");
+    }, 400);
+  }
+
   async function handleAvatarUpload(file) {
     const ch = currentCharacter();
     ch.avatarDataUrl = await Utils.fileToDataURL(file);
@@ -336,7 +350,9 @@
   }
 
   function handleDeleteCurrent() {
-    const ok = StorageService.deleteCharacter(store, currentCharacter().id);
+    const ch = currentCharacter();
+    if (!confirm(`确定要删除角色「${ch.name || "未命名角色"}」吗？`)) return;
+    const ok = StorageService.deleteCharacter(store, ch.id);
     if (!ok) {
       toast("至少保留一个角色");
       return;
@@ -388,34 +404,47 @@
     }
 
     setStatus("AI 生成中...");
+    els.generateWithAiBtn.disabled = true;
+    els.generateWithAiBtn.textContent = "生成中...";
 
-    const ch = currentCharacter();
-    const generated = await ApiService.generateCharacterFields(config, ch);
+    try {
+      const ch = currentCharacter();
+      const generated = await ApiService.generateCharacterFields(config, ch);
 
-    ch.summary = generated.summary || ch.summary;
-    ch.description = generated.description || ch.description;
-    ch.personality = generated.personality || ch.personality;
-    ch.scenario = generated.scenario || ch.scenario;
-    ch.firstMes = generated.firstMes || ch.firstMes;
-    ch.mesExample = generated.mesExample || ch.mesExample;
-    ch.creatorNotes = generated.creatorNotes || ch.creatorNotes;
+      ch.summary = generated.summary || ch.summary;
+      ch.description = generated.description || ch.description;
+      ch.personality = generated.personality || ch.personality;
+      ch.scenario = generated.scenario || ch.scenario;
+      ch.firstMes = generated.firstMes || ch.firstMes;
+      ch.mesExample = generated.mesExample || ch.mesExample;
+      ch.creatorNotes = generated.creatorNotes || ch.creatorNotes;
 
-    StorageService.upsertCharacter(store, ch);
-    store = StorageService.loadStore();
-    renderAll();
-    setStatus("已生成");
-    toast("AI 补全完成");
+      StorageService.upsertCharacter(store, ch);
+      store = StorageService.loadStore();
+      renderAll();
+      setStatus("已生成");
+      toast("AI 补全完成");
+    } finally {
+      els.generateWithAiBtn.disabled = false;
+      els.generateWithAiBtn.textContent = "AI 补全设定";
+    }
+  }
+
+  function openSidebar() {
+    els.sidebar.classList.add("open");
+    els.sidebarOverlay.classList.add("show");
+  }
+
+  function closeSidebar() {
+    els.sidebar.classList.remove("open");
+    els.sidebarOverlay.classList.remove("show");
   }
 
   function bindFormAutoSave() {
     fieldIds.forEach(id => {
       const el = els[id];
       if (!el) return;
-      el.addEventListener("input", () => {
-        saveCurrentFromForm();
-        renderAll();
-        setStatus("已自动保存");
-      });
+      el.addEventListener("input", debouncedSave);
     });
   }
 
@@ -500,6 +529,13 @@
         alert(err.message || String(err));
       }
     });
+
+    if (els.sidebarToggle) {
+      els.sidebarToggle.addEventListener("click", openSidebar);
+    }
+    if (els.sidebarOverlay) {
+      els.sidebarOverlay.addEventListener("click", closeSidebar);
+    }
   }
 
   function init() {
