@@ -115,11 +115,12 @@ window.StorageService = (() => {
   }
 
   function loadApiConfig() {
-    return Utils.safeJsonParse(localStorage.getItem(API_KEY), {
+    const fallback = {
       baseUrl: "",
       apiKey: "",
       model: ""
-    });
+    };
+    return Utils.safeJsonParse(localStorage.getItem(API_KEY), fallback) || fallback;
   }
 
   return {
