@@ -28,6 +28,10 @@
     apiKey: document.getElementById("apiKey"),
     apiModel: document.getElementById("apiModel"),
     saveApiConfigBtn: document.getElementById("saveApiConfigBtn"),
+    saveApiAndCloseBtn: document.getElementById("saveApiAndCloseBtn"),
+    openApiSettingsBtn: document.getElementById("openApiSettingsBtn"),
+    closeApiSettingsBtn: document.getElementById("closeApiSettingsBtn"),
+    apiModal: document.getElementById("apiModal"),
     generateWithAiBtn: document.getElementById("generateWithAiBtn"),
 
     avatarUpload: document.getElementById("avatarUpload"),
@@ -57,6 +61,7 @@
     firstMes: document.getElementById("firstMes"),
     mesExample: document.getElementById("mesExample"),
     creatorNotes: document.getElementById("creatorNotes"),
+    npcSettings: document.getElementById("npcSettings"),
     definition: document.getElementById("definition"),
     themeColor: document.getElementById("themeColor"),
     themeColor2: document.getElementById("themeColor2"),
@@ -80,6 +85,7 @@
     "firstMes",
     "mesExample",
     "creatorNotes",
+    "npcSettings",
     "definition",
     "themeColor",
     "themeColor2",
@@ -137,6 +143,7 @@
     ch.firstMes = els.firstMes.value.trim();
     ch.mesExample = els.mesExample.value.trim();
     ch.creatorNotes = els.creatorNotes.value.trim();
+    ch.npcSettings = els.npcSettings.value.trim();
     ch.definition = els.definition.value;
     ch.themeColor = els.themeColor.value;
     ch.themeColor2 = els.themeColor2.value;
@@ -160,6 +167,7 @@
     els.firstMes.value = ch.firstMes || "";
     els.mesExample.value = ch.mesExample || "";
     els.creatorNotes.value = ch.creatorNotes || "";
+    els.npcSettings.value = ch.npcSettings || "";
     els.definition.value = ch.definition || "";
     els.themeColor.value = ch.themeColor || "#6f86ff";
     els.themeColor2.value = ch.themeColor2 || "#9b5cff";
@@ -448,8 +456,50 @@
     });
   }
 
+  function openApiModal() {
+    els.apiModal.classList.add("show");
+    els.apiModal.setAttribute("aria-hidden", "false");
+    setTimeout(() => els.apiBaseUrl?.focus(), 0);
+  }
+
+  function closeApiModal() {
+    els.apiModal.classList.remove("show");
+    els.apiModal.setAttribute("aria-hidden", "true");
+  }
+
+  function bindEditorTabs() {
+    const tabs = [...document.querySelectorAll(".editor-tab")];
+    const panels = [...document.querySelectorAll(".tab-panel")];
+    tabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        const key = tab.dataset.tab;
+        tabs.forEach(item => item.classList.toggle("active", item === tab));
+        panels.forEach(panel => panel.classList.toggle("active", panel.dataset.tabPanel === key));
+      });
+    });
+  }
+
+  function bindPreviewTabs() {
+    const tabs = [...document.querySelectorAll(".preview-tab")];
+    const panels = [...document.querySelectorAll(".preview-tab-panel")];
+    tabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        const key = tab.dataset.previewTab;
+        tabs.forEach(item => item.classList.toggle("active", item === tab));
+        panels.forEach(panel => panel.classList.toggle("active", panel.dataset.previewPanel === key));
+      });
+    });
+  }
+
+  function handleSaveApiAndClose() {
+    handleSaveApiConfig();
+    closeApiModal();
+  }
+
   function bindEvents() {
     bindFormAutoSave();
+    bindEditorTabs();
+    bindPreviewTabs();
 
     els.characterSearch.addEventListener("input", renderCharacterList);
 
@@ -521,6 +571,15 @@
     });
 
     els.saveApiConfigBtn.addEventListener("click", handleSaveApiConfig);
+    els.saveApiAndCloseBtn.addEventListener("click", handleSaveApiAndClose);
+    els.openApiSettingsBtn.addEventListener("click", openApiModal);
+    els.closeApiSettingsBtn.addEventListener("click", closeApiModal);
+    els.apiModal.addEventListener("click", (e) => {
+      if (e.target === els.apiModal) closeApiModal();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && els.apiModal.classList.contains("show")) closeApiModal();
+    });
     els.generateWithAiBtn.addEventListener("click", async () => {
       try {
         await handleGenerateWithAi();

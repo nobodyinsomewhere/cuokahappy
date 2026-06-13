@@ -673,3 +673,155 @@ html[data-theme="glass-ice"] .card-bg{
     width:100%;
   }
 }
+
+.editor-body{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+.editor-tabs,
+.preview-tabs{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.editor-tab,
+.preview-tab{
+  background:var(--panel2);
+  border:1px solid var(--line);
+  color:var(--muted);
+  font-weight:700;
+}
+
+.editor-tab.active,
+.preview-tab.active{
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  color:#fff;
+  border-color:transparent;
+}
+
+.tab-panel,
+.preview-tab-panel{
+  display:none;
+}
+
+.tab-panel.active,
+.preview-tab-panel.active{
+  display:grid;
+}
+
+.preview-panel{
+  position:sticky;
+  top:20px;
+}
+
+.json-toolbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.json-toolbar h3{
+  margin:0;
+  font-size:16px;
+}
+
+.json-toolbar p{
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.field-hint{
+  margin-top:8px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.6;
+}
+
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(7,10,16,.58);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  z-index:1100;
+}
+
+.modal-overlay.show{
+  display:flex;
+}
+
+.modal-card{
+  width:min(560px,100%);
+  background:rgba(19,26,36,.96);
+  border:1px solid var(--line);
+  border-radius:24px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+.modal-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  padding:18px 20px;
+  border-bottom:1px solid var(--line);
+}
+
+.modal-header h2{
+  margin:0;
+  font-size:20px;
+}
+
+.modal-header p{
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.6;
+}
+
+.modal-body{
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:8px;
+  flex-wrap:wrap;
+}
+
+.icon-btn{
+  min-width:44px;
+  padding:10px 0;
+}
+
+@media (max-width: 1080px){
+  .preview-panel{
+    position:static;
+    top:auto;
+  }
+}
+
+@media (max-width: 800px){
+  .json-toolbar,
+  .modal-header,
+  .modal-actions{
+    flex-direction:column;
+    align-items:stretch;
+  }
+}

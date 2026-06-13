@@ -65,19 +65,9 @@
 
       <section class="side-panel">
         <div class="side-panel-title">AI 生成（可选）</div>
-        <p class="tiny-text">支持 OpenAI 兼容接口。可以自动补全设定内容。</p>
-
-        <label for="apiBaseUrl">Base URL</label>
-        <input id="apiBaseUrl" placeholder="https://example.com/v1" />
-
-        <label for="apiKey">API Key</label>
-        <input id="apiKey" type="password" placeholder="sk-..." />
-
-        <label for="apiModel">模型名</label>
-        <input id="apiModel" placeholder="gpt-4o-mini / deepseek-chat / ..." />
-
+        <p class="tiny-text">支持 OpenAI 兼容接口。配置被收进弹窗里，主界面只保留生成入口。</p>
         <div class="side-actions vertical">
-          <button class="secondary" id="saveApiConfigBtn">保存 API 配置</button>
+          <button class="secondary" id="openApiSettingsBtn">API 设置 ⚙</button>
           <button class="secondary" id="generateWithAiBtn">AI 补全设定</button>
         </div>
       </section>
@@ -98,8 +88,16 @@
           </div>
         </div>
 
-        <div class="panel-body">
-          <div class="form-grid">
+        <div class="panel-body editor-body">
+          <div class="editor-tabs" role="tablist" aria-label="角色编辑分类">
+            <button class="editor-tab active" data-tab="basic" type="button">基础信息</button>
+            <button class="editor-tab" data-tab="profile" type="button">角色设定</button>
+            <button class="editor-tab" data-tab="dialogue" type="button">对话内容</button>
+            <button class="editor-tab" data-tab="advanced" type="button">高级字段</button>
+            <button class="editor-tab" data-tab="style" type="button">卡面样式</button>
+          </div>
+
+          <div class="form-grid tab-panel active" data-tab-panel="basic">
             <div>
               <label for="name">角色名</label>
               <input id="name" placeholder="例如：林雾" />
@@ -135,6 +133,9 @@
               <input id="charName" value="{{char}}" />
             </div>
 
+          </div>
+
+          <div class="form-grid tab-panel" data-tab-panel="profile">
             <div class="full">
               <label for="description">角色描述 description</label>
               <textarea id="description" placeholder="外貌、背景、能力、关系倾向..."></textarea>
@@ -150,6 +151,9 @@
               <textarea id="scenario" placeholder="角色与用户相遇的背景、世界状态..."></textarea>
             </div>
 
+          </div>
+
+          <div class="form-grid tab-panel" data-tab-panel="dialogue">
             <div class="full">
               <label for="firstMes">首句 first_mes</label>
               <textarea id="firstMes" placeholder="角色第一次出场说的话"></textarea>
@@ -163,16 +167,30 @@
 {{char}}: ..."></textarea>
             </div>
 
+          </div>
+
+          <div class="form-grid tab-panel" data-tab-panel="advanced">
             <div class="full">
               <label for="creatorNotes">创作者备注 creator_notes</label>
               <textarea id="creatorNotes" placeholder="写作重点、禁忌、额外说明"></textarea>
             </div>
 
             <div class="full">
-              <label for="definition">definition（留空则自动拼接）</label>
-              <textarea id="definition" placeholder="高级兼容字段，可留空"></textarea>
+              <label for="npcSettings">其他 NPC / 配角设定</label>
+              <textarea id="npcSettings" placeholder="可写配角、组织、家人、敌人、同伴等 NPC 设定。例：
+- 阿洛：酒馆老板，知道 {{char}} 的过去。
+- 白鸦：追捕 {{char}} 的旧组织成员。"></textarea>
+              <div class="field-hint">会写入导出 JSON 的 extensions.npcSettings，并在 definition 留空时自动拼接进设定。</div>
             </div>
 
+            <div class="full">
+              <label for="definition">definition（高级，可不填）</label>
+              <textarea id="definition" placeholder="留空时会自动拼接简介、描述、人格、场景和 NPC 设定"></textarea>
+            </div>
+
+          </div>
+
+          <div class="form-grid tab-panel" data-tab-panel="style">
             <div class="full">
               <label for="avatarUpload">角色卡图片上传</label>
               <input id="avatarUpload" type="file" accept="image/*" />
@@ -199,12 +217,16 @@
       <section class="panel preview-panel">
         <div class="panel-header">
           <div>
-            <h2>卡面预览</h2>
-            <p>导出普通卡面 PNG，或导出嵌入角色 JSON 的 PNG 角色卡。</p>
+            <h2>预览</h2>
+            <p>卡面实时预览，JSON 可切换查看。</p>
+          </div>
+          <div class="preview-tabs" role="tablist" aria-label="预览类型">
+            <button class="preview-tab active" data-preview-tab="card" type="button">卡面</button>
+            <button class="preview-tab" data-preview-tab="json" type="button">JSON</button>
           </div>
         </div>
 
-        <div class="panel-body">
+        <div class="panel-body preview-tab-panel active" data-preview-panel="card">
           <div id="cardPreview" class="card-preview">
             <div class="card-bg"></div>
             <div class="card-content">
@@ -246,29 +268,52 @@
 
           <canvas id="exportCanvas" width="1200" height="1600" hidden></canvas>
         </div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-header">
-          <div>
-            <h2>JSON 预览</h2>
-            <p>导出 Tavern Character Card 风格 JSON。</p>
-          </div>
-          <div class="header-actions">
+        <div class="panel-body preview-tab-panel" data-preview-panel="json">
+          <div class="json-toolbar">
+            <div>
+              <h3>JSON 预览</h3>
+              <p>导出 Tavern Character Card 风格 JSON。</p>
+            </div>
             <button class="secondary" id="copyJsonBtn">复制 JSON</button>
           </div>
+          <pre id="jsonPreview" class="json-preview">{}</pre>
         </div>
-
-        <pre id="jsonPreview" class="json-preview">{}</pre>
       </section>
     </main>
   </div>
 
-  <script src="./utils.js?v=20260613-fix1"></script>
-  <script src="./storage.js?v=20260613-fix1"></script>
-  <script src="./card-data.js?v=20260613-fix1"></script>
-  <script src="./png-card.js?v=20260613-fix1"></script>
-  <script src="./api.js?v=20260613-fix1"></script>
-  <script src="./app.js?v=20260613-fix1"></script>
+  <div id="apiModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="apiModalTitle">
+      <div class="modal-header">
+        <div>
+          <h2 id="apiModalTitle">API 设置</h2>
+          <p>仅用于 AI 补全设定；不填写也不影响普通编辑和导出。</p>
+        </div>
+        <button class="secondary icon-btn" id="closeApiSettingsBtn" type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <label for="apiBaseUrl">Base URL</label>
+        <input id="apiBaseUrl" placeholder="https://example.com/v1" />
+
+        <label for="apiKey">API Key</label>
+        <input id="apiKey" type="password" placeholder="sk-..." />
+
+        <label for="apiModel">模型名</label>
+        <input id="apiModel" placeholder="gpt-4o-mini / deepseek-chat / ..." />
+
+        <div class="modal-actions">
+          <button class="secondary" id="saveApiConfigBtn">保存 API 配置</button>
+          <button id="saveApiAndCloseBtn" type="button">保存并关闭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./utils.js?v=20260613-layout1"></script>
+  <script src="./storage.js?v=20260613-layout1"></script>
+  <script src="./card-data.js?v=20260613-layout1"></script>
+  <script src="./png-card.js?v=20260613-layout1"></script>
+  <script src="./api.js?v=20260613-layout1"></script>
+  <script src="./app.js?v=20260613-layout1"></script>
 </body>
 </html>

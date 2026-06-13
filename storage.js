@@ -20,6 +20,7 @@ window.StorageService = (() => {
       firstMes: "",
       mesExample: "",
       creatorNotes: "",
+      npcSettings: "",
       definition: "",
       avatarDataUrl: "",
       themeColor: "#6f86ff",

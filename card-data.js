@@ -7,6 +7,7 @@ window.CardDataService = (() => {
     if (ch.description) parts.push(`# Description\n${ch.description}`);
     if (ch.personality) parts.push(`# Personality\n${ch.personality}`);
     if (ch.scenario) parts.push(`# Scenario\n${ch.scenario}`);
+    if (ch.npcSettings) parts.push(`# Other NPCs\n${ch.npcSettings}`);
 
     return parts.join("\n\n").trim();
   }
@@ -35,7 +36,8 @@ window.CardDataService = (() => {
           char_name: ch.charName || "{{char}}",
           avatar: ch.avatarDataUrl || "",
           themeColor: ch.themeColor || "#6f86ff",
-          themeColor2: ch.themeColor2 || "#9b5cff"
+          themeColor2: ch.themeColor2 || "#9b5cff",
+          npcSettings: ch.npcSettings || ""
         },
         definition: buildDefinition(ch)
       },
@@ -66,6 +68,7 @@ window.CardDataService = (() => {
       firstMes: data.first_mes || "",
       mesExample: data.mes_example || "",
       creatorNotes: data.creator_notes || "",
+      npcSettings: data.extensions?.npcSettings || "",
       definition: data.definition || "",
       avatarDataUrl: imageDataUrl || data.extensions?.avatar || "",
       themeColor: data.extensions?.themeColor || "#6f86ff",
