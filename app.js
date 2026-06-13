@@ -377,7 +377,7 @@
   }
 
   function initApiConfig() {
-    const config = StorageService.loadApiConfig();
+    const config = StorageService.loadApiConfig() || {};
     els.apiBaseUrl.value = config.baseUrl || "";
     els.apiKey.value = config.apiKey || "";
     els.apiModel.value = config.model || "";
