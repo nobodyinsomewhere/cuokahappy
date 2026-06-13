@@ -134,6 +134,28 @@ window.PngCard = (() => {
     return map;
   }
 
+  function encodeCharacterPayload(jsonText) {
+    const bytes = Utils.textToUint8(jsonText);
+    let binary = "";
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return btoa(binary);
+  }
+
+  function decodeCharacterPayload(text) {
+    const raw = String(text || "").trim();
+    if (!raw) return "";
+    if (raw.startsWith("{")) return raw;
+
+    try {
+      const binary = atob(raw);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return Utils.uint8ToText(bytes);
+    } catch {
+      return raw;
+    }
+  }
+
   function extractCharacterJson(pngBytes) {
     const texts = extractTextChunks(pngBytes);
     const hit =
@@ -142,7 +164,7 @@ window.PngCard = (() => {
       texts.find(x => x.keyword === "ccv2");
 
     if (!hit) return null;
-    return hit.text;
+    return decodeCharacterPayload(hit.text);
   }
 
   function dataURLToUint8(dataURL) {
@@ -371,10 +393,11 @@ window.PngCard = (() => {
 
   async function exportEmbeddedPng(character, canvas, cardJsonObject) {
     const jsonText = JSON.stringify(cardJsonObject);
+    const payloadText = encodeCharacterPayload(jsonText);
 
     if (character.avatarDataUrl && isPngDataUrl(character.avatarDataUrl)) {
       const baseBytes = dataURLToUint8(character.avatarDataUrl);
-      const merged = insertTextChunk(baseBytes, "chara", jsonText);
+      const merged = insertTextChunk(baseBytes, "chara", payloadText);
       return uint8ToBlob(merged, "image/png");
     }
 
@@ -401,7 +424,7 @@ window.PngCard = (() => {
 
         const dataUrl = canvas.toDataURL("image/png");
         const baseBytes = dataURLToUint8(dataUrl);
-        const merged = insertTextChunk(baseBytes, "chara", jsonText);
+        const merged = insertTextChunk(baseBytes, "chara", payloadText);
         return uint8ToBlob(merged, "image/png");
       } catch {
         throw new Error("图片处理失败，无法导出 PNG 角色卡");
@@ -410,7 +433,7 @@ window.PngCard = (() => {
 
     const dataUrl = await exportCardCanvas(character, canvas);
     const baseBytes = dataURLToUint8(dataUrl);
-    const merged = insertTextChunk(baseBytes, "chara", jsonText);
+    const merged = insertTextChunk(baseBytes, "chara", payloadText);
     return uint8ToBlob(merged, "image/png");
   }
 
