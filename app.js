@@ -1,5 +1,7 @@
 (() => {
   let store = StorageService.loadStore();
+  const RECENT_API_PROVIDERS_KEY = "tavern_card_v3_recent_api_providers";
+  let fetchedModels = [];
 
   const els = {
     toastWrap: document.getElementById("toastWrap"),
@@ -24,11 +26,19 @@
     jsonFileInput: document.getElementById("jsonFileInput"),
     pngFileInput: document.getElementById("pngFileInput"),
 
+    apiProviderName: document.getElementById("apiProviderName"),
+    recentApiProviderSelect: document.getElementById("recentApiProviderSelect"),
     apiBaseUrl: document.getElementById("apiBaseUrl"),
     apiKey: document.getElementById("apiKey"),
     apiModel: document.getElementById("apiModel"),
+    fetchModelsBtn: document.getElementById("fetchModelsBtn"),
+    modelSearch: document.getElementById("modelSearch"),
+    apiModelSelect: document.getElementById("apiModelSelect"),
+    apiStatusText: document.getElementById("apiStatusText"),
     saveApiConfigBtn: document.getElementById("saveApiConfigBtn"),
     saveApiAndCloseBtn: document.getElementById("saveApiAndCloseBtn"),
+    saveRecentProviderBtn: document.getElementById("saveRecentProviderBtn"),
+    testApiBtn: document.getElementById("testApiBtn"),
     openApiSettingsBtn: document.getElementById("openApiSettingsBtn"),
     closeApiSettingsBtn: document.getElementById("closeApiSettingsBtn"),
     apiModal: document.getElementById("apiModal"),
@@ -99,6 +109,123 @@
   function toast(text) {
     Utils.toast(text);
   }
+
+  function setApiStatus(text, kind = "") {
+    if (!els.apiStatusText) return;
+    els.apiStatusText.textContent = text;
+    els.apiStatusText.dataset.kind = kind;
+  }
+
+  function humanizeError(err) {
+    const text = err?.message || String(err || "未知错误");
+    if (/401|unauthorized|invalid api key|incorrect api key/i.test(text)) return "Key 可能无效或无权限：" + text;
+    if (/404|model.*not.*found|does not exist|模型不存在/i.test(text)) return "模型可能不存在或模型名填错：" + text;
+    if (/400|bad_request|bad response status/i.test(text)) return "供应商返回 400：常见是 Base URL 层级、模型映射、请求格式或上游通道异常。" + text;
+    if (/json|不是合法 JSON|Unexpected token/i.test(text)) return "返回不是 JSON：供应商可能返回了 HTML/错误页，或模型没有按要求输出 JSON。" + text;
+    if (/Failed to fetch|NetworkError|CORS/i.test(text)) return "网络或 CORS 失败：浏览器可能无法直连该供应商，建议走可跨域的 OpenAI-compatible 网关。" + text;
+    return text;
+  }
+
+  function escapeAttr(str = "") {
+    return String(str).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function loadRecentProviders() {
+    const parsed = Utils.safeJsonParse(localStorage.getItem(RECENT_API_PROVIDERS_KEY), []);
+    return Array.isArray(parsed) ? parsed : [];
+  }
+
+  function saveRecentProviders(list) {
+    localStorage.setItem(RECENT_API_PROVIDERS_KEY, JSON.stringify(list.slice(0, 12)));
+  }
+
+  function currentApiConfig() {
+    return {
+      name: els.apiProviderName.value.trim(),
+      baseUrl: els.apiBaseUrl.value.trim(),
+      apiKey: els.apiKey.value.trim(),
+      model: els.apiModel.value.trim()
+    };
+  }
+
+  function renderRecentProviders() {
+    const list = loadRecentProviders();
+    els.recentApiProviderSelect.innerHTML = '<option value="">选择最近配置...</option>' + list.map((item, index) => `<option value="${index}">${escapeAttr(item.name || item.model || item.baseUrl || "未命名供应商")}</option>`).join("");
+  }
+
+  function saveCurrentProviderToRecent() {
+    const config = currentApiConfig();
+    if (!config.baseUrl || !config.model) {
+      setApiStatus("至少填写 Base URL 和模型名后再保存。", "warn");
+      return;
+    }
+    const list = loadRecentProviders().filter(item => !(item.baseUrl === config.baseUrl && item.model === config.model));
+    list.unshift({ ...config, savedAt: Date.now() });
+    saveRecentProviders(list);
+    renderRecentProviders();
+    setApiStatus("已保存到最近供应商。", "ok");
+    toast("供应商配置已保存");
+  }
+
+  function applyRecentProvider(index) {
+    const item = loadRecentProviders()[Number(index)];
+    if (!item) return;
+    els.apiProviderName.value = item.name || "";
+    els.apiBaseUrl.value = item.baseUrl || "";
+    els.apiKey.value = item.apiKey || "";
+    els.apiModel.value = item.model || "";
+    handleSaveApiConfig(false);
+    setApiStatus("已载入最近供应商，可直接测试连接或拉模型。", "ok");
+  }
+
+  function renderModelOptions(models = fetchedModels, filter = "") {
+    if (models.length) fetchedModels = models;
+    const keyword = filter.trim().toLowerCase();
+    const visible = keyword ? fetchedModels.filter(model => model.toLowerCase().includes(keyword)) : fetchedModels;
+    els.apiModelSelect.innerHTML = '<option value="">选择拉取到的模型...</option>' + visible.map(model => `<option value="${escapeAttr(model)}">${escapeAttr(model)}</option>`).join("");
+    els.apiModelSelect.classList.toggle("hidden", !fetchedModels.length);
+    els.modelSearch.classList.toggle("hidden", !fetchedModels.length);
+    if (fetchedModels.length) setApiStatus(`显示 ${visible.length}/${fetchedModels.length} 个模型。`, visible.length ? "ok" : "warn");
+  }
+
+  async function handleFetchModels() {
+    els.fetchModelsBtn.disabled = true;
+    els.fetchModelsBtn.textContent = "拉取中...";
+    setApiStatus(`正在请求 ${ApiService.modelListUrl(els.apiBaseUrl.value)} ...`);
+    try {
+      const data = await ApiService.fetchModels(currentApiConfig());
+      const models = ApiService.normalizeModelsPayload(data);
+      renderModelOptions(models);
+      if (models.length && !els.apiModel.value.trim()) els.apiModel.value = models[0];
+      handleSaveApiConfig(false);
+      setApiStatus(models.length ? `已拉取 ${models.length} 个模型，请优先从列表里选择。` : "请求成功，但没有解析到模型 ID。", models.length ? "ok" : "warn");
+    } catch (err) {
+      fetchedModels = [];
+      renderModelOptions([]);
+      setApiStatus(humanizeError(err), "bad");
+    } finally {
+      els.fetchModelsBtn.disabled = false;
+      els.fetchModelsBtn.textContent = "拉模型";
+    }
+  }
+
+  async function handleTestApi() {
+    els.testApiBtn.disabled = true;
+    els.testApiBtn.textContent = "测试中...";
+    setApiStatus("正在测试 chat/completions ...");
+    try {
+      const result = await ApiService.testConnection(currentApiConfig());
+      handleSaveApiConfig(false);
+      setApiStatus(`连接成功：${result.slice(0, 80)}`, "ok");
+      toast("API 连接正常");
+    } catch (err) {
+      setApiStatus(humanizeError(err), "bad");
+    } finally {
+      els.testApiBtn.disabled = false;
+      els.testApiBtn.textContent = "测试连接";
+    }
+  }
+
 
   function currentCharacter() {
     return StorageService.getCurrent(store);
@@ -386,26 +513,21 @@
 
   function initApiConfig() {
     const config = StorageService.loadApiConfig() || {};
+    els.apiProviderName.value = config.name || "";
     els.apiBaseUrl.value = config.baseUrl || "";
     els.apiKey.value = config.apiKey || "";
     els.apiModel.value = config.model || "";
+    renderRecentProviders();
+    renderModelOptions([]);
   }
 
-  function handleSaveApiConfig() {
-    StorageService.saveApiConfig({
-      baseUrl: els.apiBaseUrl.value.trim(),
-      apiKey: els.apiKey.value.trim(),
-      model: els.apiModel.value.trim()
-    });
-    toast("API 配置已保存");
+  function handleSaveApiConfig(showToast = true) {
+    StorageService.saveApiConfig(currentApiConfig());
+    if (showToast) toast("API 配置已保存");
   }
 
   async function handleGenerateWithAi() {
-    const config = {
-      baseUrl: els.apiBaseUrl.value.trim(),
-      apiKey: els.apiKey.value.trim(),
-      model: els.apiModel.value.trim()
-    };
+    const config = currentApiConfig();
 
     if (!config.baseUrl || !config.model) {
       throw new Error("请先填写 Base URL 和模型名");
@@ -515,7 +637,8 @@
       try {
         await handleAvatarUpload(file);
       } catch (err) {
-        alert(err.message || String(err));
+        setApiStatus(humanizeError(err), "bad");
+        toast("操作失败，查看页面提示");
       }
       e.target.value = "";
     });
@@ -529,7 +652,8 @@
       try {
         await handleImportJson(file);
       } catch (err) {
-        alert(err.message || String(err));
+        setApiStatus(humanizeError(err), "bad");
+        toast("操作失败，查看页面提示");
       }
       e.target.value = "";
     });
@@ -540,7 +664,8 @@
       try {
         await handleImportPng(file);
       } catch (err) {
-        alert(err.message || String(err));
+        setApiStatus(humanizeError(err), "bad");
+        toast("操作失败，查看页面提示");
       }
       e.target.value = "";
     });
@@ -550,7 +675,8 @@
       try {
         await handleCopyJson();
       } catch (err) {
-        alert(err.message || String(err));
+        setApiStatus(humanizeError(err), "bad");
+        toast("操作失败，查看页面提示");
       }
     });
 
@@ -558,7 +684,8 @@
       try {
         await handleExportPreviewPng();
       } catch (err) {
-        alert(err.message || String(err));
+        setApiStatus(humanizeError(err), "bad");
+        toast("操作失败，查看页面提示");
       }
     });
 
@@ -566,11 +693,21 @@
       try {
         await handleExportEmbeddedPng();
       } catch (err) {
-        alert(err.message || String(err));
+        setApiStatus(humanizeError(err), "bad");
+        toast("操作失败，查看页面提示");
       }
     });
 
-    els.saveApiConfigBtn.addEventListener("click", handleSaveApiConfig);
+    els.saveApiConfigBtn.addEventListener("click", () => handleSaveApiConfig(true));
+    els.saveRecentProviderBtn.addEventListener("click", saveCurrentProviderToRecent);
+    els.fetchModelsBtn.addEventListener("click", handleFetchModels);
+    els.testApiBtn.addEventListener("click", handleTestApi);
+    els.modelSearch.addEventListener("input", () => renderModelOptions(fetchedModels, els.modelSearch.value));
+    els.apiModelSelect.addEventListener("change", () => {
+      if (els.apiModelSelect.value) els.apiModel.value = els.apiModelSelect.value;
+      handleSaveApiConfig(false);
+    });
+    els.recentApiProviderSelect.addEventListener("change", () => applyRecentProvider(els.recentApiProviderSelect.value));
     els.saveApiAndCloseBtn.addEventListener("click", handleSaveApiAndClose);
     els.openApiSettingsBtn.addEventListener("click", openApiModal);
     els.closeApiSettingsBtn.addEventListener("click", closeApiModal);
@@ -585,7 +722,8 @@
         await handleGenerateWithAi();
       } catch (err) {
         setStatus("生成失败");
-        alert(err.message || String(err));
+        setApiStatus(humanizeError(err), "bad");
+        toast("操作失败，查看页面提示");
       }
     });
 

@@ -292,28 +292,46 @@
         <button class="secondary icon-btn" id="closeApiSettingsBtn" type="button" aria-label="关闭">×</button>
       </div>
       <div class="modal-body">
+        <label for="apiProviderName">供应商名称（可选）</label>
+        <input id="apiProviderName" placeholder="例如：备用供应商 / 某渠道" />
+
+        <label for="recentApiProviderSelect">最近用过的供应商</label>
+        <select id="recentApiProviderSelect" class="model-select">
+          <option value="">选择最近配置...</option>
+        </select>
+
         <label for="apiBaseUrl">Base URL</label>
-        <input id="apiBaseUrl" placeholder="https://example.com/v1" />
+        <input id="apiBaseUrl" placeholder="https://example.com / https://example.com/v1 / .../chat/completions" />
 
         <label for="apiKey">API Key</label>
         <input id="apiKey" type="password" placeholder="sk-..." />
 
         <label for="apiModel">模型名</label>
-        <input id="apiModel" placeholder="gpt-4o-mini / deepseek-chat / ..." />
+        <div class="model-row">
+          <input id="apiModel" placeholder="先填 Base URL + Key，然后拉模型" />
+          <button class="secondary" id="fetchModelsBtn" type="button">拉模型</button>
+        </div>
+        <input id="modelSearch" class="model-select hidden" placeholder="搜索 / 过滤模型名" />
+        <select id="apiModelSelect" class="model-select hidden" aria-label="选择模型">
+          <option value="">选择拉取到的模型...</option>
+        </select>
+        <div id="apiStatusText" class="api-status-text">先拉模型，再从列表里选择，能减少模型名错误。</div>
 
         <div class="modal-actions">
           <button class="secondary" id="saveApiConfigBtn">保存 API 配置</button>
+          <button class="secondary" id="saveRecentProviderBtn" type="button">保存为最近供应商</button>
+          <button class="secondary" id="testApiBtn" type="button">测试连接</button>
           <button id="saveApiAndCloseBtn" type="button">保存并关闭</button>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="./utils.js?v=20260613-layout1"></script>
-  <script src="./storage.js?v=20260613-layout1"></script>
-  <script src="./card-data.js?v=20260613-layout1"></script>
-  <script src="./png-card.js?v=20260613-layout1"></script>
-  <script src="./api.js?v=20260613-layout1"></script>
-  <script src="./app.js?v=20260613-layout1"></script>
+  <script src="./utils.js?v=20260615-apiux1"></script>
+  <script src="./storage.js?v=20260615-apiux1"></script>
+  <script src="./card-data.js?v=20260615-apiux1"></script>
+  <script src="./png-card.js?v=20260615-apiux1"></script>
+  <script src="./api.js?v=20260615-apiux1"></script>
+  <script src="./app.js?v=20260615-apiux1"></script>
 </body>
 </html>

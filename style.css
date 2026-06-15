@@ -825,3 +825,32 @@ html[data-theme="glass-ice"] .card-bg{
     align-items:stretch;
   }
 }
+
+.model-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  align-items:center;
+}
+.model-row button{
+  white-space:nowrap;
+}
+.model-select{
+  margin-top:10px;
+}
+.model-select.hidden{
+  display:none;
+}
+.api-status-text{
+  margin-top:9px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+  white-space:pre-wrap;
+}
+.api-status-text[data-kind="ok"]{color:var(--ok)}
+.api-status-text[data-kind="warn"]{color:#d9962c}
+.api-status-text[data-kind="bad"]{color:var(--danger)}
+@media (max-width:640px){
+  .model-row{grid-template-columns:1fr}
+}
