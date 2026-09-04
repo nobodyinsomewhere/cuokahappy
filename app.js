@@ -592,6 +592,10 @@
       ch.firstMes = generated.firstMes || ch.firstMes;
       ch.mesExample = generated.mesExample || ch.mesExample;
       ch.creatorNotes = generated.creatorNotes || ch.creatorNotes;
+      ch.systemPrompt = generated.systemPrompt || ch.systemPrompt;
+      ch.postHistoryInstructions = generated.postHistoryInstructions || ch.postHistoryInstructions;
+      ch.characterBookText = generated.characterBookText || ch.characterBookText;
+      ch.userPersona = generated.userPersona || ch.userPersona;
 
       StorageService.upsertCharacter(store, ch);
       store = StorageService.loadStore();

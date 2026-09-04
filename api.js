@@ -80,7 +80,12 @@ window.ApiService = (() => {
     }
 
     const data = await res.json();
-    return data?.choices?.[0]?.message?.content || data?.choices?.[0]?.text || "";
+    const message = data?.choices?.[0]?.message;
+    const content = message?.content ?? data?.choices?.[0]?.text ?? "";
+    if (Array.isArray(content)) {
+      return content.map(part => typeof part === "string" ? part : part?.text || "").join("");
+    }
+    return typeof content === "string" ? content : String(content || "");
   }
 
   async function testConnection(config) {
@@ -100,7 +105,7 @@ window.ApiService = (() => {
   function buildPrompt(character) {
     return `
 你是一个角色卡写作助手。请根据已有字段补全角色设定，并返回严格 JSON，字段包括：
-summary, description, personality, scenario, firstMes, mesExample, creatorNotes
+summary, description, personality, scenario, firstMes, mesExample, creatorNotes, systemPrompt, postHistoryInstructions, characterBookText, userPersona
 
 要求：
 1. 保持人物一致性
@@ -113,15 +118,57 @@ ${JSON.stringify(character, null, 2)}
     `.trim();
   }
 
+  function extractJsonCandidates(content) {
+    const text = String(content || "").replace(/^\uFEFF/, "").trim();
+    const candidates = [text];
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/gi) || [];
+    for (const block of fenced) candidates.push(block.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim());
+    for (let start = text.indexOf("{"); start >= 0; start = text.indexOf("{", start + 1)) {
+      let depth = 0;
+      let quoted = false;
+      let escaped = false;
+      for (let i = start; i < text.length; i += 1) {
+        const ch = text[i];
+        if (quoted) {
+          if (escaped) escaped = false;
+          else if (ch === "\\") escaped = true;
+          else if (ch === '"') quoted = false;
+        } else if (ch === '"') quoted = true;
+        else if (ch === "{") depth += 1;
+        else if (ch === "}" && --depth === 0) {
+          candidates.push(text.slice(start, i + 1));
+          break;
+        }
+      }
+    }
+    return candidates;
+  }
+
   function parseAiJson(content) {
-    const direct = Utils.safeJsonParse(content, null);
-    if (direct) return direct;
-    const match = String(content || "").match(/```(?:json)?\s*([\s\S]*?)```/i);
-    if (match) return Utils.safeJsonParse(match[1], null);
-    const start = String(content || "").indexOf("{");
-    const end = String(content || "").lastIndexOf("}");
-    if (start >= 0 && end > start) return Utils.safeJsonParse(String(content).slice(start, end + 1), null);
+    for (const candidate of extractJsonCandidates(content)) {
+      const parsed = Utils.safeJsonParse(candidate, null);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+    }
     return null;
+  }
+
+  function normalizeGeneratedFields(parsed) {
+    const aliases = {
+      firstMes: ["firstMes", "first_mes", "firstMessage", "first_message"],
+      mesExample: ["mesExample", "mes_example", "exampleDialogue", "example_dialogue"],
+      creatorNotes: ["creatorNotes", "creator_notes"],
+      systemPrompt: ["systemPrompt", "system_prompt"],
+      postHistoryInstructions: ["postHistoryInstructions", "post_history_instructions"],
+      characterBookText: ["characterBookText", "character_book", "characterBook"],
+      userPersona: ["userPersona", "user_persona"]
+    };
+    const result = {};
+    for (const key of ["summary", "description", "personality", "scenario", "firstMes", "mesExample", "creatorNotes", "systemPrompt", "postHistoryInstructions", "characterBookText", "userPersona"]) {
+      const sourceKeys = aliases[key] || [key];
+      const value = sourceKeys.map(sourceKey => parsed[sourceKey]).find(value => typeof value === "string" && value.trim());
+      if (value) result[key] = value.trim();
+    }
+    return result;
   }
 
   async function generateCharacterFields(config, character) {
@@ -137,10 +184,14 @@ ${JSON.stringify(character, null, 2)}
 
     const parsed = parseAiJson(content);
     if (!parsed) {
-      throw new Error("AI 返回的不是合法 JSON，请重试或更换更稳定的模型。");
+      throw new Error("AI 返回中没有可解析的 JSON。请确认模型支持文本输出，并重试或更换模型。");
     }
 
-    return parsed;
+    const normalized = normalizeGeneratedFields(parsed);
+    if (!Object.keys(normalized).length) {
+      throw new Error("AI 返回了 JSON，但没有可用的角色卡字段；请更换模型或检查提示词响应。");
+    }
+    return normalized;
   }
 
   return {
