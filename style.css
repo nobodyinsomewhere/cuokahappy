@@ -753,6 +753,7 @@ html[data-theme="glass-ice"] .card-bg{
   align-items:center;
   justify-content:center;
   padding:20px;
+  overflow-y:auto;
   z-index:1100;
 }
 
@@ -762,6 +763,10 @@ html[data-theme="glass-ice"] .card-bg{
 
 .modal-card{
   width:min(560px,100%);
+  max-height:calc(100vh - 40px);
+  max-height:calc(100dvh - 40px);
+  display:flex;
+  flex-direction:column;
   background:rgba(19,26,36,.96);
   border:1px solid var(--line);
   border-radius:24px;
@@ -791,18 +796,25 @@ html[data-theme="glass-ice"] .card-bg{
 }
 
 .modal-body{
+  min-height:0;
   padding:20px;
   display:flex;
   flex-direction:column;
   gap:12px;
+  overflow-y:auto;
 }
 
 .modal-actions{
+  position:sticky;
+  bottom:0;
   display:flex;
   justify-content:flex-end;
   gap:10px;
   margin-top:8px;
+  padding:12px 0 2px;
+  background:rgba(19,26,36,.96);
   flex-wrap:wrap;
+  z-index:2;
 }
 
 .icon-btn{
@@ -823,6 +835,20 @@ html[data-theme="glass-ice"] .card-bg{
   .modal-actions{
     flex-direction:column;
     align-items:stretch;
+  }
+
+  .modal-overlay{
+    align-items:flex-start;
+    padding:12px;
+    padding-top:max(12px, env(safe-area-inset-top));
+    padding-bottom:max(12px, env(safe-area-inset-bottom));
+  }
+
+  .modal-card{
+    width:100%;
+    max-height:calc(100vh - 24px);
+    max-height:calc(100dvh - 24px);
+    border-radius:18px;
   }
 }
 
