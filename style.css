@@ -925,3 +925,75 @@ html[data-theme="glass-ice"] .tag{
   background:rgba(255,255,255,.58);
   border-color:rgba(36,83,107,.18);
 }
+
+.field-map-guide,
+.section-guide,
+.export-guide{
+  border:1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+  border-radius:14px;
+  background:color-mix(in srgb, var(--accent) 8%, var(--panel));
+  color:var(--text);
+  line-height:1.7;
+}
+
+.field-map-guide{
+  padding:12px 14px;
+  font-size:13px;
+}
+
+.section-guide{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  padding:12px 14px;
+}
+
+.section-guide strong,
+.export-guide strong{
+  color:var(--text);
+}
+
+.section-guide span,
+.export-guide{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.field-hint{
+  margin:4px 0 7px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+}
+
+.field-hint code,
+label code{
+  color:var(--accent2);
+  font-size:.9em;
+}
+
+.ai-action-hint{
+  margin-top:-4px;
+}
+
+.export-guide{
+  margin-top:10px;
+  padding:10px 12px;
+}
+
+.legacy-fields{
+  padding:12px 14px;
+  border:1px dashed var(--line);
+  border-radius:12px;
+}
+
+.legacy-fields summary{
+  cursor:pointer;
+  color:var(--muted);
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+.legacy-fields textarea{
+  margin-top:6px;
+}

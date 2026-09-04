@@ -53,11 +53,12 @@
         <div class="side-panel-title">导入导出</div>
         <div class="side-actions vertical">
           <button class="secondary" id="importJsonBtn">导入 JSON</button>
-          <button class="secondary" id="exportJsonBtn">导出 JSON</button>
+          <button class="secondary" id="exportJsonBtn">导出酒馆卡 JSON</button>
           <button class="secondary" id="importPngBtn">导入 PNG 角色卡</button>
-          <button class="secondary" id="exportPngBtn">导出 PNG 角色卡</button>
-          <button class="secondary" id="exportPreviewPngBtn">导出卡面 PNG</button>
+          <button class="secondary" id="exportPngBtn">导出酒馆卡 PNG</button>
+          <button class="secondary" id="exportPreviewPngBtn">导出普通卡面 PNG</button>
         </div>
+        <div class="export-guide"><strong>导出怎么选？</strong> 要导入酒馆请选择“导出酒馆卡 PNG”；“导出普通卡面 PNG”只有视觉预览，不含角色数据。</div>
 
         <input id="jsonFileInput" type="file" accept=".json,application/json" hidden />
         <input id="pngFileInput" type="file" accept="image/png" hidden />
@@ -68,7 +69,8 @@
         <p class="tiny-text">支持 OpenAI 兼容接口。配置被收进弹窗里，主界面只保留生成入口。</p>
         <div class="side-actions vertical">
           <button class="secondary" id="openApiSettingsBtn">API 设置 ⚙</button>
-          <button class="secondary" id="generateWithAiBtn">AI 补全设定</button>
+          <button class="secondary" id="generateWithAiBtn">AI 补全空白字段</button>
+          <div class="field-hint ai-action-hint">AI 只补全空白字段，不覆盖已有内容；先完成 API 设置里的“拉模型”和“测试连接”。</div>
           <div id="aiErrorPanel" class="ai-error-panel hidden" role="alert">
             <div id="aiErrorSummary" class="ai-error-summary"></div>
             <button class="secondary" id="viewAiErrorBtn" type="button">查看详情</button>
@@ -82,7 +84,7 @@
         <div class="panel-header">
           <div>
             <h2>角色编辑</h2>
-            <p>编辑字段时自动保存，也支持手动保存当前角色。</p>
+            <p>按下方 5 个栏目顺序填写；每个栏目都标明“写什么”和“导出到哪里”。</p>
           </div>
           <div class="header-actions">
             <span id="statusText" class="status-pill">就绪</span>
@@ -94,14 +96,16 @@
 
         <div class="panel-body editor-body">
           <div class="editor-tabs" role="tablist" aria-label="角色编辑分类">
-            <button class="editor-tab active" data-tab="basic" type="button">基础信息</button>
-            <button class="editor-tab" data-tab="profile" type="button">角色设定</button>
-            <button class="editor-tab" data-tab="dialogue" type="button">对话内容</button>
-            <button class="editor-tab" data-tab="advanced" type="button">高级字段</button>
-            <button class="editor-tab" data-tab="style" type="button">卡面样式</button>
+            <button class="editor-tab active" data-tab="basic" type="button">① 角色资料</button>
+            <button class="editor-tab" data-tab="profile" type="button">② 身份与性格</button>
+            <button class="editor-tab" data-tab="dialogue" type="button">③ 剧情与开场</button>
+            <button class="editor-tab" data-tab="advanced" type="button">④ 规则与世界观</button>
+            <button class="editor-tab" data-tab="style" type="button">⑤ 卡面与导出</button>
+            <div class="field-map-guide full"><strong>不会放？看这里：</strong>角色是谁 → 身份与外貌；角色怎么想 → 性格与行为；当前在哪里、和用户什么关系 → 故事前提；角色每轮必须遵守 → 强制行为规则；每轮怎么写 → 固定写作要求；第一次发出的整段话 → 开场白；陆云的资料 → 用户人设。</div>
           </div>
 
           <div class="form-grid tab-panel active" data-tab-panel="basic">
+            <div class="section-guide full"><strong>角色资料</strong><span>填写卡片身份和变量名。这里不放剧情正文、强制规则或写作要求。</span></div>
             <div>
               <label for="name">角色名</label>
               <input id="name" placeholder="例如：林雾" />
@@ -140,33 +144,39 @@
           </div>
 
           <div class="form-grid tab-panel" data-tab-panel="profile">
+            <div class="section-guide full"><strong>身份与性格</strong><span>这里回答“角色是谁、平时怎样行动”。导出到酒馆的 description、personality、scenario。</span></div>
             <div class="full">
-              <label for="description">角色描述 description</label>
-              <textarea id="description" placeholder="外貌、背景、能力、关系倾向..."></textarea>
+              <label for="description">身份与外貌 <code>description</code></label>
+              <div class="field-hint">放年龄、身份、外貌、经历、能力和固定关系；不要放第一次回复。</div>
+              <textarea id="description" placeholder="例如：年龄、身份、外貌、经历、能力、固定关系"></textarea>
             </div>
 
             <div class="full">
-              <label for="personality">人格 personality</label>
-              <textarea id="personality" placeholder="性格、价值观、说话方式..."></textarea>
+              <label for="personality">性格与行为 <code>personality</code></label>
+              <div class="field-hint">放性格、价值观、习惯、说话方式和通常反应；绝对规则放到“强制行为规则”。</div>
+              <textarea id="personality" placeholder="例如：性格、价值观、口头禅、通常如何回应"></textarea>
             </div>
 
             <div class="full">
-              <label for="scenario">场景 scenario</label>
-              <textarea id="scenario" placeholder="角色与用户相遇的背景、世界状态..."></textarea>
+              <label for="scenario">故事前提与当前关系 <code>scenario</code></label>
+              <div class="field-hint">放地点、世界状态、关系阶段和当前事件；不要把整段开场回复放这里。</div>
+              <textarea id="scenario" placeholder="例如：故事发生地、双方关系、当前阶段、开局事件"></textarea>
             </div>
 
           </div>
 
           <div class="form-grid tab-panel" data-tab-panel="dialogue">
+            <div class="section-guide full"><strong>剧情与开场</strong><span>“场景”是长期背景；“开场白”是角色第一次实际发出的完整消息，两者不要混在一起。</span></div>
             <div class="full">
-              <label for="firstMes">开场白 first_mes</label>
-              <textarea id="firstMes" placeholder="角色第一次出场说的话"></textarea>
+              <label for="firstMes">开场白 <code>first_mes</code></label>
+              <div class="field-hint">放角色第一次发给用户的完整消息，可以包含环境、动作和对白；导入酒馆后会显示为首条消息。</div>
+              <textarea id="firstMes" placeholder="角色第一次发给用户的完整消息"></textarea>
             </div>
 
             <div class="full">
-              <label for="mesExample">示例对话 mes_example</label>
+              <label for="mesExample">示例对话 <code>mes_example</code></label>
+              <div class="field-hint">放几轮用户与角色的对话，用来示范语气；不要把硬性规则写成对话。</div>
               <textarea id="mesExample" placeholder="<START>
-{{char}}: ...
 {{user}}: ...
 {{char}}: ..."></textarea>
             </div>
@@ -174,46 +184,43 @@
           </div>
 
           <div class="form-grid tab-panel" data-tab-panel="advanced">
+            <div class="section-guide full"><strong>规则与世界观</strong><span>这里区分“必须遵守的命令”“每轮写法”“可调用资料”。不确定时，先看每个框下面的说明。</span></div>
             <div class="full">
-              <label for="creatorNotes">创作者备注 creator_notes</label>
-              <textarea id="creatorNotes" placeholder="写作重点、禁忌、额外说明"></textarea>
+              <label for="userPersona">用户人设（陆云） <code>user_persona</code></label>
+              <div class="field-hint">这里写用户本人/陆云的年龄、身份、外貌和与角色的关系；正文仍用 {{user}}。会随卡保存到 extensions.user_persona。</div>
+              <textarea id="userPersona" placeholder="例如：陆云，25 岁女性，与靳烈是什么关系"></textarea>
             </div>
 
             <div class="full">
-              <label for="userPersona">用户人设（随卡保存）</label>
-              <textarea id="userPersona" placeholder="例如：陆云的年龄、身份、外貌、与角色的关系等"></textarea>
-              <div class="field-hint">写入 extensions.user_persona，不替代酒馆中单独设置的 Persona；正文仍建议使用 {{user}}。</div>
+              <label for="systemPrompt">强制行为规则 <code>system_prompt</code></label>
+              <div class="field-hint">放角色必须持续遵守的硬规则，例如“不得替用户决定行动”“必须保持身份和关系”。不要放开场正文。</div>
+              <textarea id="systemPrompt" placeholder="每条规则单独一行，例如：不得替 {{user}} 决定动作、想法或台词"></textarea>
             </div>
 
             <div class="full">
-              <label for="systemPrompt">强制行为规则 system_prompt</label>
-              <textarea id="systemPrompt" placeholder="角色必须持续遵守的行为逻辑、边界和核心规则"></textarea>
+              <label for="postHistoryInstructions">固定写作要求 <code>post_history_instructions</code></label>
+              <div class="field-hint">放每轮回复都要遵守的写法，例如人称、长度、格式、描写重点和禁用事项。</div>
+              <textarea id="postHistoryInstructions" placeholder="例如：使用第三人称描写动作；每次回复 3～6 段；保留角色口吻"></textarea>
             </div>
 
             <div class="full">
-              <label for="postHistoryInstructions">固定写作要求 post_history_instructions</label>
-              <textarea id="postHistoryInstructions" placeholder="人称、文风、描写重点及每轮回复都应遵守的写作要求"></textarea>
+              <label for="characterBookText">世界书资料 <code>character_book</code></label>
+              <div class="field-hint">放地点、组织、配角、术语和世界观资料；它是背景资料，不是角色每轮都要执行的命令。</div>
+              <textarea id="characterBookText" placeholder="例如：地点、组织、配角、世界规则、专有名词"></textarea>
             </div>
 
             <div class="full">
-              <label for="characterBookText">世界书 / 配角资料 character_book</label>
-              <textarea id="characterBookText" placeholder="可写组织、地点、配角和世界设定；导出时生成标准 character_book 条目"></textarea>
-              <div class="field-hint">此处内容会导出为始终启用的标准角色书条目。正文为空时不生成 character_book。</div>
+              <label for="creatorNotes">创作者备注 <code>creator_notes</code></label>
+              <div class="field-hint">给制作者或使用者看的说明，不是角色必须执行的规则。</div>
+              <textarea id="creatorNotes" placeholder="写作重点、使用说明、禁忌提示"></textarea>
             </div>
 
-            <div class="full">
-              <label for="npcSettings">其他 NPC / 配角设定（旧版兼容）</label>
-              <textarea id="npcSettings" placeholder="可写配角、组织、家人、敌人、同伴等 NPC 设定。例：
-- 阿洛：酒馆老板，知道 {{char}} 的过去。
-- 白鸦：追捕 {{char}} 的旧组织成员。"></textarea>
-              <div class="field-hint">会写入导出 JSON 的 extensions.npcSettings，并在 definition 留空时自动拼接进设定。</div>
-            </div>
-
-            <div class="full">
-              <label for="definition">definition（高级，可不填）</label>
-              <textarea id="definition" placeholder="留空时会自动拼接简介、描述、人格、场景和 NPC 设定"></textarea>
-            </div>
-
+            <details class="legacy-fields full"><summary>兼容旧版字段（不确定就不要填）</summary>
+              <label for="npcSettings">旧版 NPC / 配角设定 <code>extensions.npcSettings</code></label>
+              <textarea id="npcSettings" placeholder="旧卡兼容用的 NPC 设定"></textarea>
+              <label for="definition">旧版总设定 <code>definition</code></label>
+              <textarea id="definition" placeholder="旧格式兼容区；新卡建议按上面的字段分别填写"></textarea>
+            </details>
           </div>
 
           <div class="form-grid tab-panel" data-tab-panel="style">
