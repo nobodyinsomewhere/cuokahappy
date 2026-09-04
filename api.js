@@ -69,8 +69,9 @@ window.ApiService = (() => {
       headers: buildHeaders(apiKey),
       body: JSON.stringify({
         model,
-        temperature: 0.85,
-        max_tokens: 2200,
+        temperature: 0.2,
+        max_tokens: 3200,
+        stream: false,
         messages
       })
     });
@@ -79,13 +80,17 @@ window.ApiService = (() => {
       throw new Error(`API 请求失败：${await readErrorText(res)}`);
     }
 
-    const data = await res.json();
-    const message = data?.choices?.[0]?.message;
-    const content = message?.content ?? data?.choices?.[0]?.text ?? "";
-    if (Array.isArray(content)) {
-      return content.map(part => typeof part === "string" ? part : part?.text || "").join("");
+    const rawResponse = await res.text();
+    const data = Utils.safeJsonParse(rawResponse, null);
+    if (!data || typeof data !== "object") {
+      const preview = rawResponse.replace(/\s+/g, " ").trim().slice(0, 240);
+      throw new Error(`API 响应不是 JSON：${preview || "空响应"}`);
     }
-    return typeof content === "string" ? content : String(content || "");
+    const choice = data?.choices?.[0];
+    if (choice?.finish_reason === "length") {
+      throw new Error("模型输出被截断（finish_reason=length），请减少补全字段或更换输出上限更高的模型。");
+    }
+    return extractCompletionText(data);
   }
 
   async function testConnection(config) {
@@ -103,23 +108,72 @@ window.ApiService = (() => {
   }
 
   function buildPrompt(character) {
-    return `
-你是一个角色卡写作助手。请根据已有字段补全角色设定，并返回严格 JSON，字段包括：
-summary, description, personality, scenario, firstMes, mesExample, creatorNotes, systemPrompt, postHistoryInstructions, characterBookText, userPersona
+    const fields = {
+      name: character.name || "",
+      creator: character.creator || "",
+      userName: character.userName || "{{user}}",
+      charName: character.charName || "{{char}}",
+      summary: character.summary || "",
+      description: character.description || "",
+      personality: character.personality || "",
+      scenario: character.scenario || "",
+      firstMes: character.firstMes || "",
+      mesExample: character.mesExample || "",
+      creatorNotes: character.creatorNotes || "",
+      systemPrompt: character.systemPrompt || "",
+      postHistoryInstructions: character.postHistoryInstructions || "",
+      characterBookText: character.characterBookText || "",
+      userPersona: character.userPersona || "",
+      npcSettings: character.npcSettings || ""
+    };
+    const targetFields = [
+      "summary", "description", "personality", "scenario", "firstMes", "mesExample",
+      "creatorNotes", "systemPrompt", "postHistoryInstructions", "characterBookText", "userPersona"
+    ].filter(key => !String(fields[key] || "").trim());
+    const compactFields = Object.fromEntries(Object.entries(fields).map(([key, value]) => [
+      key,
+      String(value || "").slice(0, 5000)
+    ]));
+    return {
+      targetFields,
+      prompt: `
+你是一个严谨的酒馆角色卡补全助手。只输出一个合法 JSON 对象，不要 Markdown，不要解释文字，不要代码围栏。
 
-要求：
-1. 保持人物一致性
-2. 文风自然，可直接用于酒馆角色卡
-3. 如果字段已有内容，则在原有基础上增强，不要完全推翻
-4. 返回严格 JSON，不要带 Markdown 代码块
+只允许生成这些空字段：${targetFields.join(", ") || "无"}
+已有字段必须保持原样，不要返回已有字段，也不要改写、总结或缩短已有内容。
+每个新字段控制在 600 字以内，内容要能直接用于 SillyTavern 角色卡。
+字段名必须使用：summary, description, personality, scenario, firstMes, mesExample, creatorNotes, systemPrompt, postHistoryInstructions, characterBookText, userPersona。
+如果没有可补全字段，返回 {}。
 
-已知角色信息：
-${JSON.stringify(character, null, 2)}
-    `.trim();
+角色信息：
+${JSON.stringify(compactFields, null, 2)}
+      `.trim()
+    };
+  }
+
+  function extractCompletionText(data) {
+    const choice = data?.choices?.[0];
+    const candidates = [choice?.message?.content, choice?.text, data?.output_text, data?.output, data?.response, choice?.message?.reasoning_content];
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim()) return candidate;
+      if (Array.isArray(candidate)) {
+        const text = candidate.map(part => typeof part === "string" ? part : part?.text || part?.content || "").join("");
+        if (text.trim()) return text;
+      }
+      if (candidate && typeof candidate === "object") {
+        const text = candidate.text || candidate.content || candidate.output;
+        if (typeof text === "string" && text.trim()) return text;
+      }
+    }
+    return "";
   }
 
   function extractJsonCandidates(content) {
-    const text = String(content || "").replace(/^\uFEFF/, "").trim();
+    const text = String(content || "")
+      .replace(/^\uFEFF/, "")
+      .replace(/<think>[\s\S]*?<\/think>/gi, "")
+      .replace(/<analysis>[\s\S]*?<\/analysis>/gi, "")
+      .trim();
     const candidates = [text];
     const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/gi) || [];
     for (const block of fenced) candidates.push(block.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim());
@@ -146,8 +200,19 @@ ${JSON.stringify(character, null, 2)}
 
   function parseAiJson(content) {
     for (const candidate of extractJsonCandidates(content)) {
-      const parsed = Utils.safeJsonParse(candidate, null);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+      const variants = [candidate, candidate.replace(/,\s*([}\]])/g, "$1")];
+      for (const variant of variants) {
+        const parsed = Utils.safeJsonParse(variant, null);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          let result = parsed;
+          for (let i = 0; i < 3; i += 1) {
+            const nested = result?.data || result?.result || result?.output || result?.response;
+            if (!nested || typeof nested !== "object" || Array.isArray(nested)) break;
+            result = nested;
+          }
+          return result;
+        }
+      }
     }
     return null;
   }
@@ -172,19 +237,24 @@ ${JSON.stringify(character, null, 2)}
   }
 
   async function generateCharacterFields(config, character) {
+    const request = buildPrompt(character);
+    if (!request.targetFields.length) {
+      throw new Error("当前没有空字段可补全；已有内容不会被 AI 覆盖。");
+    }
     const content = await chatCompletion({
       baseUrl: config.baseUrl,
       apiKey: config.apiKey,
       model: config.model,
       messages: [
-        { role: "system", content: "你是一个严谨的角色卡设定生成器。必须只输出合法 JSON。" },
-        { role: "user", content: buildPrompt(character) }
+        { role: "system", content: "你是一个严谨的酒馆角色卡设定生成器。必须只输出合法 JSON。" },
+        { role: "user", content: request.prompt }
       ]
     });
 
     const parsed = parseAiJson(content);
     if (!parsed) {
-      throw new Error("AI 返回中没有可解析的 JSON。请确认模型支持文本输出，并重试或更换模型。");
+      const preview = String(content || "").replace(/\s+/g, " ").trim().slice(0, 240);
+      throw new Error(`AI 返回不是合法 JSON。模型返回摘要：${preview || "空响应"}`);
     }
 
     const normalized = normalizeGeneratedFields(parsed);
