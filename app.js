@@ -123,7 +123,8 @@
 
   function setApiStatus(text, kind = "") {
     if (!els.apiStatusText) return;
-    els.apiStatusText.textContent = text;
+    const lines = Array.isArray(text) ? text.filter(Boolean) : [String(text ?? "")];
+    els.apiStatusText.innerHTML = lines.map(escapeAttr).join("<br>");
     els.apiStatusText.dataset.kind = kind;
   }
 
@@ -153,13 +154,17 @@
   }
 
   function humanizeError(err) {
-    const text = err?.message || String(err || "未知错误");
-    if (/401|unauthorized|invalid api key|incorrect api key/i.test(text)) return "Key 可能无效或无权限：" + text;
-    if (/404|model.*not.*found|does not exist|模型不存在/i.test(text)) return "模型可能不存在或模型名填错：" + text;
-    if (/400|bad_request|bad response status/i.test(text)) return "供应商返回 400：常见是 Base URL 层级、模型映射、请求格式或上游通道异常。" + text;
-    if (/json|不是合法 JSON|Unexpected token/i.test(text)) return "返回不是 JSON：供应商可能返回了 HTML/错误页，或模型没有按要求输出 JSON。" + text;
-    if (/Failed to fetch|NetworkError|CORS/i.test(text)) return "网络或 CORS 失败：浏览器可能无法直连该供应商，建议走可跨域的 OpenAI-compatible 网关。" + text;
-    return text;
+    const raw = err?.message || String(err || "未知错误");
+    const statusMatch = raw.match(/\b(4\d\d|5\d\d)\b/);
+    const status = statusMatch ? statusMatch[1] : "";
+    const head = status ? `HTTP ${status}` : "请求失败";
+    if (/401|unauthorized|invalid api key|incorrect api key/i.test(raw)) return [head+"：Key 无效或无权限", raw, "API 设置中检查 Key 是否完整、未带多余空格且对应该供应商。"];
+    if (/404|model.*not.*found|does not exist|模型不存在/i.test(raw)) return [head+"：模型不存在或模型名填错", raw, "点「拉模型」从列表中选，不要手写模型名。"];
+    if (/429|rate.*limit|quota/i.test(raw)) return [head+"：触发限流或配额", raw, "稍等片刻或换用其他模型；持续失败请检查供应商余额。"];
+    if (/400|bad_request|bad response status/i.test(raw)) return [head+"：Base URL/模型/请求体被拒绝", raw, "常见是 Base URL 缺 /v1、模型名错或请求格式不兼容。先「拉模型」再「测试连接」。"];
+    if (/json|不是合法 JSON|Unexpected token/i.test(raw)) return [head+"：返回不是 JSON", raw, "供应商返回了 HTML/错误页或模型未按 JSON 输出。可换模型重试。"];
+    if (/Failed to fetch|TypeError.*Failed|NetworkError|CORS|Cross-Origin/i.test(raw)) return [head+"：网络或 CORS 失败", raw, "浏览器无法直连该供应商。请在 API 设置里先用「测试连接」验证；如失败建议换用可跨域的 OpenAI-compatible 网关。"];
+    return [head, raw, "如持续失败请截图状态文字用于排查。"];
   }
 
   function escapeAttr(str = "") {
