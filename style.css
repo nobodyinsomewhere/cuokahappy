@@ -854,3 +854,48 @@ html[data-theme="glass-ice"] .card-bg{
 @media (max-width:640px){
   .model-row{grid-template-columns:1fr}
 }
+
+
+.ai-error-panel{
+  display:grid;
+  gap:10px;
+  padding:12px;
+  border:1px solid color-mix(in srgb, var(--danger) 55%, transparent);
+  border-radius:8px;
+  background:color-mix(in srgb, var(--danger) 12%, var(--panel));
+}
+.ai-error-panel.hidden{display:none}
+.ai-error-summary{
+  color:var(--danger);
+  font-size:13px;
+  line-height:1.55;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+.ai-error-panel button{justify-self:start}
+
+html[data-theme="glass-mint"] .card-preview,
+html[data-theme="glass-ice"] .card-preview{
+  color:#102f46;
+}
+html[data-theme="glass-mint"] .card-title-row h3,
+html[data-theme="glass-ice"] .card-title-row h3{color:#0c2b3d}
+html[data-theme="glass-mint"] .summary,
+html[data-theme="glass-ice"] .summary{color:#294d63}
+html[data-theme="glass-mint"] .section,
+html[data-theme="glass-ice"] .section{
+  background:rgba(255,255,255,.52);
+  border-color:rgba(36,83,107,.18);
+}
+html[data-theme="glass-mint"] .section-title,
+html[data-theme="glass-ice"] .section-title{color:#315f73}
+html[data-theme="glass-mint"] .section-body,
+html[data-theme="glass-ice"] .section-body{color:#102f46}
+html[data-theme="glass-mint"] .badge,
+html[data-theme="glass-ice"] .badge,
+html[data-theme="glass-mint"] .tag,
+html[data-theme="glass-ice"] .tag{
+  color:#173d53;
+  background:rgba(255,255,255,.58);
+  border-color:rgba(36,83,107,.18);
+}

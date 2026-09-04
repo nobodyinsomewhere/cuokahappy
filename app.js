@@ -35,6 +35,9 @@
     modelSearch: document.getElementById("modelSearch"),
     apiModelSelect: document.getElementById("apiModelSelect"),
     apiStatusText: document.getElementById("apiStatusText"),
+    aiErrorPanel: document.getElementById("aiErrorPanel"),
+    aiErrorSummary: document.getElementById("aiErrorSummary"),
+    viewAiErrorBtn: document.getElementById("viewAiErrorBtn"),
     saveApiConfigBtn: document.getElementById("saveApiConfigBtn"),
     saveApiAndCloseBtn: document.getElementById("saveApiAndCloseBtn"),
     saveRecentProviderBtn: document.getElementById("saveRecentProviderBtn"),
@@ -71,6 +74,10 @@
     firstMes: document.getElementById("firstMes"),
     mesExample: document.getElementById("mesExample"),
     creatorNotes: document.getElementById("creatorNotes"),
+    systemPrompt: document.getElementById("systemPrompt"),
+    postHistoryInstructions: document.getElementById("postHistoryInstructions"),
+    userPersona: document.getElementById("userPersona"),
+    characterBookText: document.getElementById("characterBookText"),
     npcSettings: document.getElementById("npcSettings"),
     definition: document.getElementById("definition"),
     themeColor: document.getElementById("themeColor"),
@@ -95,6 +102,10 @@
     "firstMes",
     "mesExample",
     "creatorNotes",
+    "systemPrompt",
+    "postHistoryInstructions",
+    "userPersona",
+    "characterBookText",
     "npcSettings",
     "definition",
     "themeColor",
@@ -114,6 +125,31 @@
     if (!els.apiStatusText) return;
     els.apiStatusText.textContent = text;
     els.apiStatusText.dataset.kind = kind;
+  }
+
+  function clearAiError() {
+    localStorage.removeItem("tavern_card_v3_last_ai_error");
+    els.aiErrorPanel?.classList.add("hidden");
+    if (els.aiErrorSummary) els.aiErrorSummary.textContent = "";
+  }
+
+  function showAiError(message) {
+    const text = String(message || "未知错误");
+    localStorage.setItem("tavern_card_v3_last_ai_error", text);
+    if (els.aiErrorSummary) els.aiErrorSummary.textContent = `AI 补全失败：${text}`;
+    els.aiErrorPanel?.classList.remove("hidden");
+  }
+
+  function restoreAiError() {
+    const text = localStorage.getItem("tavern_card_v3_last_ai_error");
+    if (text) showAiError(text);
+  }
+
+  function openAiErrorDetails() {
+    const text = localStorage.getItem("tavern_card_v3_last_ai_error") || "暂无错误详情。";
+    setApiStatus(text, "bad");
+    openApiModal();
+    setTimeout(() => els.apiStatusText?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
   }
 
   function humanizeError(err) {
@@ -270,6 +306,10 @@
     ch.firstMes = els.firstMes.value.trim();
     ch.mesExample = els.mesExample.value.trim();
     ch.creatorNotes = els.creatorNotes.value.trim();
+    ch.systemPrompt = els.systemPrompt.value.trim();
+    ch.postHistoryInstructions = els.postHistoryInstructions.value.trim();
+    ch.userPersona = els.userPersona.value.trim();
+    ch.characterBookText = els.characterBookText.value.trim();
     ch.npcSettings = els.npcSettings.value.trim();
     ch.definition = els.definition.value;
     ch.themeColor = els.themeColor.value;
@@ -294,6 +334,10 @@
     els.firstMes.value = ch.firstMes || "";
     els.mesExample.value = ch.mesExample || "";
     els.creatorNotes.value = ch.creatorNotes || "";
+    els.systemPrompt.value = ch.systemPrompt || "";
+    els.postHistoryInstructions.value = ch.postHistoryInstructions || "";
+    els.userPersona.value = ch.userPersona || "";
+    els.characterBookText.value = ch.characterBookText || "";
     els.npcSettings.value = ch.npcSettings || "";
     els.definition.value = ch.definition || "";
     els.themeColor.value = ch.themeColor || "#6f86ff";
@@ -553,6 +597,7 @@
       store = StorageService.loadStore();
       renderAll();
       setStatus("已生成");
+      clearAiError();
       toast("AI 补全完成");
     } finally {
       els.generateWithAiBtn.disabled = false;
@@ -710,6 +755,7 @@
     els.recentApiProviderSelect.addEventListener("change", () => applyRecentProvider(els.recentApiProviderSelect.value));
     els.saveApiAndCloseBtn.addEventListener("click", handleSaveApiAndClose);
     els.openApiSettingsBtn.addEventListener("click", openApiModal);
+    els.viewAiErrorBtn?.addEventListener("click", openAiErrorDetails);
     els.closeApiSettingsBtn.addEventListener("click", closeApiModal);
     els.apiModal.addEventListener("click", (e) => {
       if (e.target === els.apiModal) closeApiModal();
@@ -721,9 +767,11 @@
       try {
         await handleGenerateWithAi();
       } catch (err) {
+        const detail = humanizeError(err);
         setStatus("生成失败");
-        setApiStatus(humanizeError(err), "bad");
-        toast("操作失败，查看页面提示");
+        setApiStatus(detail, "bad");
+        showAiError(detail);
+        toast("AI 补全失败，可查看详情");
       }
     });
 
@@ -739,6 +787,7 @@
     initTheme();
     initApiConfig();
     bindEvents();
+    restoreAiError();
     renderAll();
     setStatus("就绪");
   }

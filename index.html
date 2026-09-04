@@ -69,6 +69,10 @@
         <div class="side-actions vertical">
           <button class="secondary" id="openApiSettingsBtn">API 设置 ⚙</button>
           <button class="secondary" id="generateWithAiBtn">AI 补全设定</button>
+          <div id="aiErrorPanel" class="ai-error-panel hidden" role="alert">
+            <div id="aiErrorSummary" class="ai-error-summary"></div>
+            <button class="secondary" id="viewAiErrorBtn" type="button">查看详情</button>
+          </div>
         </div>
       </section>
     </aside>
@@ -176,7 +180,29 @@
             </div>
 
             <div class="full">
-              <label for="npcSettings">其他 NPC / 配角设定</label>
+              <label for="userPersona">用户人设（随卡保存）</label>
+              <textarea id="userPersona" placeholder="例如：陆云的年龄、身份、外貌、与角色的关系等"></textarea>
+              <div class="field-hint">写入 extensions.user_persona，不替代酒馆中单独设置的 Persona；正文仍建议使用 {{user}}。</div>
+            </div>
+
+            <div class="full">
+              <label for="systemPrompt">强制行为规则 system_prompt</label>
+              <textarea id="systemPrompt" placeholder="角色必须持续遵守的行为逻辑、边界和核心规则"></textarea>
+            </div>
+
+            <div class="full">
+              <label for="postHistoryInstructions">固定写作要求 post_history_instructions</label>
+              <textarea id="postHistoryInstructions" placeholder="人称、文风、描写重点及每轮回复都应遵守的写作要求"></textarea>
+            </div>
+
+            <div class="full">
+              <label for="characterBookText">世界书 / 配角资料 character_book</label>
+              <textarea id="characterBookText" placeholder="可写组织、地点、配角和世界设定；导出时生成标准 character_book 条目"></textarea>
+              <div class="field-hint">此处内容会导出为始终启用的标准角色书条目。正文为空时不生成 character_book。</div>
+            </div>
+
+            <div class="full">
+              <label for="npcSettings">其他 NPC / 配角设定（旧版兼容）</label>
               <textarea id="npcSettings" placeholder="可写配角、组织、家人、敌人、同伴等 NPC 设定。例：
 - 阿洛：酒馆老板，知道 {{char}} 的过去。
 - 白鸦：追捕 {{char}} 的旧组织成员。"></textarea>
@@ -327,11 +353,11 @@
     </div>
   </div>
 
-  <script src="./utils.js?v=20260615-apiux1"></script>
-  <script src="./storage.js?v=20260615-apiux1"></script>
-  <script src="./card-data.js?v=20260615-apiux1"></script>
-  <script src="./png-card.js?v=20260615-apiux1"></script>
-  <script src="./api.js?v=20260615-apiux1"></script>
-  <script src="./app.js?v=20260615-apiux1"></script>
+  <script src="./utils.js?v=20260904-cardfix1"></script>
+  <script src="./storage.js?v=20260904-cardfix1"></script>
+  <script src="./card-data.js?v=20260904-cardfix1"></script>
+  <script src="./png-card.js?v=20260904-cardfix1"></script>
+  <script src="./api.js?v=20260904-cardfix1"></script>
+  <script src="./app.js?v=20260904-cardfix1"></script>
 </body>
 </html>

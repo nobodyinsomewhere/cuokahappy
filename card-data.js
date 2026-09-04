@@ -12,7 +12,42 @@ window.CardDataService = (() => {
     return parts.join("\n\n").trim();
   }
 
+  function buildCharacterBook(ch) {
+    const content = String(ch.characterBookText || "").trim();
+    if (!content) return undefined;
+    return {
+      name: `${ch.name || "角色"}世界书`,
+      description: "",
+      scan_depth: 4,
+      token_budget: 2048,
+      recursive_scanning: false,
+      extensions: {},
+      entries: [{
+        keys: [],
+        content,
+        extensions: {},
+        enabled: true,
+        insertion_order: 100,
+        case_sensitive: false,
+        name: "世界设定",
+        priority: 10,
+        id: 1,
+        comment: "",
+        selective: false,
+        secondary_keys: [],
+        constant: true,
+        position: "before_char"
+      }]
+    };
+  }
+
+  function characterBookToText(book) {
+    if (!book || !Array.isArray(book.entries)) return "";
+    return book.entries.map(entry => entry?.content || "").filter(Boolean).join("\n\n");
+  }
+
   function toCardJson(ch) {
+    const characterBook = buildCharacterBook(ch);
     return {
       spec: "chara_card_v2",
       spec_version: "2.0",
@@ -24,8 +59,9 @@ window.CardDataService = (() => {
         first_mes: ch.firstMes || "",
         mes_example: ch.mesExample || "",
         creator_notes: ch.creatorNotes || "",
-        system_prompt: "",
-        post_history_instructions: "",
+        system_prompt: ch.systemPrompt || "",
+        post_history_instructions: ch.postHistoryInstructions || "",
+        ...(characterBook ? { character_book: characterBook } : {}),
         alternate_greetings: ch.alternateGreetings || [],
         tags: ch.tags || [],
         creator: ch.creator || "",
@@ -34,6 +70,7 @@ window.CardDataService = (() => {
           summary: ch.summary || "",
           user_name: ch.userName || "{{user}}",
           char_name: ch.charName || "{{char}}",
+          user_persona: ch.userPersona || "",
           avatar: ch.avatarDataUrl || "",
           themeColor: ch.themeColor || "#6f86ff",
           themeColor2: ch.themeColor2 || "#9b5cff",
@@ -68,6 +105,10 @@ window.CardDataService = (() => {
       firstMes: data.first_mes || "",
       mesExample: data.mes_example || "",
       creatorNotes: data.creator_notes || "",
+      systemPrompt: data.system_prompt || "",
+      postHistoryInstructions: data.post_history_instructions || "",
+      userPersona: data.extensions?.user_persona || "",
+      characterBookText: characterBookToText(data.character_book),
       npcSettings: data.extensions?.npcSettings || "",
       definition: data.definition || "",
       avatarDataUrl: imageDataUrl || data.extensions?.avatar || "",
@@ -116,6 +157,8 @@ ${next.charName || "{{char}}"}: 我更想听你自己说。`;
 
   return {
     buildDefinition,
+    buildCharacterBook,
+    characterBookToText,
     toCardJson,
     normalizeImportedCard,
     applyTemplateFill
